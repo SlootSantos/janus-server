@@ -18,11 +18,11 @@ const bucketPrefix = "janus-bucket-"
 // builds entire JAM-Stack
 // including a Bucket, a CDN and a Githook
 func (j *Creator) build(ctx context.Context, repository string) ([]byte, error) {
-	jamID := strconv.FormatInt(time.Now().UnixNano(), 10)
+	stackID := strconv.FormatInt(time.Now().UnixNano(), 10)
 	creationParam := &CreationParam{
-		ID: jamID,
+		ID: stackID,
 		Bucket: struct{ ID string }{
-			ID: bucketPrefix + jamID,
+			ID: bucketPrefix + stackID,
 		},
 		Repo: struct{ Name string }{
 			Name: repository,
@@ -37,7 +37,7 @@ func (j *Creator) build(ctx context.Context, repository string) ([]byte, error) 
 
 	userName := ctx.Value(auth.ContextKeyUserName).(string)
 
-	updatedList, err := storeJAM(&creationStack, userName)
+	updatedList, err := storeStack(&creationStack, userName)
 	if err != nil {
 		return []byte{}, err
 	}
@@ -59,7 +59,7 @@ func (j *Creator) delete(ctx context.Context, stackID string) ([]byte, error) {
 	deletionParam := DeletionParam(stack)
 	j.destroyStack(ctx, &deletionParam)
 
-	updatedList, err := removeJAM(&stack, user)
+	updatedList, err := removeStack(&stack, user)
 	if err != nil {
 		log.Println(err)
 		return []byte{}, err
@@ -124,9 +124,9 @@ func execDestroy(ctx context.Context, sr stackResource, deletionParam *DeletionP
 	return nil
 }
 
-func storeJAM(stack *Stack, user string) (updatedList []byte, err error) {
-	jamList := getAllStacks(user)
-	updatedStackList := append(jamList, *stack)
+func storeStack(stack *Stack, user string) (updatedList []byte, err error) {
+	stackList := getAllStacks(user)
+	updatedStackList := append(stackList, *stack)
 
 	if err := storage.Store.Stack.Set(user, updatedStackList); err != nil {
 		log.Println(err)
@@ -141,27 +141,27 @@ func storeJAM(stack *Stack, user string) (updatedList []byte, err error) {
 	return updatedList, nil
 }
 
-func removeJAM(stack *Stack, user string) (updatedList []byte, err error) {
-	jamList := getAllStacks(user)
-	if len(jamList) == 0 {
+func removeStack(stack *Stack, user string) (updatedList []byte, err error) {
+	stackList := getAllStacks(user)
+	if len(stackList) == 0 {
 		return updatedList, nil
 	}
 
-	for idx, jam := range jamList {
-		if jam.ID != stack.ID {
+	for idx, s := range stackList {
+		if s.ID != stack.ID {
 			continue
 		}
 
-		jamList = append(jamList[:idx], jamList[idx+1:]...)
+		stackList = append(stackList[:idx], stackList[idx+1:]...)
 		break
 	}
 
-	if err := storage.Store.Stack.Set(user, jamList); err != nil {
+	if err := storage.Store.Stack.Set(user, stackList); err != nil {
 		log.Println(err)
 		return updatedList, err
 	}
 
-	updatedList, err = json.Marshal(jamList)
+	updatedList, err = json.Marshal(stackList)
 	if err != nil {
 		return updatedList, err
 	}
@@ -170,21 +170,21 @@ func removeJAM(stack *Stack, user string) (updatedList []byte, err error) {
 }
 
 func getAllStacks(user string) []Stack {
-	jamList, _ := storage.Store.Stack.Get(user)
+	stackList, _ := storage.Store.Stack.Get(user)
 
-	return jamList
+	return stackList
 }
 
-func getStackByID(jamID string, user string) Stack {
+func getStackByID(stackID string, user string) Stack {
 	stack := Stack{}
-	jamListArr := getAllStacks(user)
+	stackListArr := getAllStacks(user)
 
-	for _, jam := range jamListArr {
-		if jam.ID != jamID {
+	for _, s := range stackListArr {
+		if s.ID != stackID {
 			continue
 		}
 
-		stack = jam
+		stack = s
 	}
 
 	return stack

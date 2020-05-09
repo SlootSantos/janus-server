@@ -35,9 +35,8 @@ func createDependendableJAMCreator() *jam.Creator {
 	}
 
 	q := queue.New(awsSess)
-
-	bucket := bucket.New(awsSess, &q)
 	cdn := cdn.New(awsSess, &q)
+	bucket := bucket.New(awsSess, &q)
 	repo := repo.New()
 
 	go storage.Init(awsSess)
