@@ -1,0 +1,17 @@
+version: '2'
+
+tasks:
+  pipeline:
+    dir: pkg/pipeline/assets
+    cmds:
+      - docker build -t slootsantos/own:latest -f pipeline.Dockerfile .
+      - docker tag slootsantos/own:latest slootsantos/own:latest
+      - docker push slootsantos/own:latest
+      
+  watch:
+    cmds:
+      - air
+  
+  pushimage:
+    cmds:
+      - export $(cat .env | xargs) && ./ci/push_docker_image.sh

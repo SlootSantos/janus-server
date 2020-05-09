@@ -1,0 +1,44 @@
+{
+  "AWSEBDockerrunVersion": 2,
+  "volumes": [
+    {
+      "name": "janus",
+      "host": {
+        "sourcePath": "/var/app/current/janus"
+      }
+    },
+    {
+      "name": "socket",
+      "host": {
+        "sourcePath": "/var/run"
+      }
+    }
+  ],
+  "containerDefinitions": [
+    {
+      "name": "janus",
+      "image": "108151951856.dkr.ecr.us-east-1.amazonaws.com/janus/server",
+      "essential": true,
+      "memory": 500,
+      "environment": [],
+      "portMappings": [
+        {
+          "hostPort": 80,
+          "containerPort": 8888
+        }
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "janus",
+          "containerPath": "/var/janus",
+          "readOnly": true
+        },
+        {
+          "sourceVolume": "socket",
+          "containerPath": "/var/run",
+          "readOnly": false
+        }
+      ]
+    }
+  ]
+}
