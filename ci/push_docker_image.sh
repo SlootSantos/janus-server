@@ -1,11 +1,5 @@
 #!/usr/bin/env bash
 
-
-echo $REDIS_PORT
-echo $REDIS_HOSTNAME
-echo $PWD
-
-
 # login to ECR
 $(AWS_SECRET_ACCESS_KEY=$AWS_SECRET_KEY AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID aws ecr get-login --no-include-email --region us-east-1)
 

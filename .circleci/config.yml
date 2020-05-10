@@ -1,7 +1,9 @@
 # Golang CircleCI 2.0 configuration file
 #
 # Check https://circleci.com/docs/2.0/language-go/ for more details
-version: 2
+version: 2.1
+orbs:
+  aws-cli: circleci/aws-cli@1.0.0
 jobs:
   build:
     docker:
@@ -24,9 +26,30 @@ jobs:
       # specify any bash command here prefixed with `run: `
       - run: go get -v -t -d ./...
       - run: go test -v ./...
-      - run: install awscli
-      - run: push container to ECR
-      - run: push eb config to s3
 
-      - run: aws elasticbeanstalk create-application-version --application-name janus_server --version-label v2 --description MyAppv1 --source-bundle S3Bucket="elasticbeanstalk-us-east-1-108151951856",S3Key="2020128u9Y-Dockerrun.aws.json" --auto-create-application --region=us-east-1 --proces      
-      - run: aws elasticbeanstalk update-environment --application-name janus_server --environment-name=janus-server-production --version-label v2 --region=us-east-1
+      # - run: install awscli
+      # - run: push container to ECR
+      # - run: push eb config to s3
+
+      # - run: aws elasticbeanstalk create-application-version --application-name janus_server --version-label v2 --description MyAppv1 --source-bundle S3Bucket="elasticbeanstalk-us-east-1-108151951856",S3Key="2020128u9Y-Dockerrun.aws.json" --auto-create-application --region=us-east-1 --proces      
+      # - run: aws elasticbeanstalk update-environment --application-name janus_server --environment-name=janus-server-production --version-label v2 --region=us-east-1
+  test:
+    machine: true
+    steps:
+      - checkout
+      - run: aws --version
+
+workflows:
+  version: 2
+  build-test-and-deploy:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+      # - test2:
+      #     requires:
+      #       - test1
+      # - deploy:
+      #     requires:
+      #       - test2 
