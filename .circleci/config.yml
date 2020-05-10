@@ -37,7 +37,7 @@ jobs:
     machine: true
     steps:
       - checkout
-      - run: aws --version
+      - run: ./ci/push_docker_image.sh
 
 workflows:
   version: 2
