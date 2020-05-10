@@ -1,3 +1,5 @@
+//go:generate mockgen -source=$GOFILE -destination=mock.$GOFILE -package=$GOPACKAGE
+
 package bucket
 
 import (
@@ -8,9 +10,18 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
+type bucketHandler interface {
+	ListBuckets(*s3.ListBucketsInput) (*s3.ListBucketsOutput, error)
+	CreateBucket(*s3.CreateBucketInput) (*s3.CreateBucketOutput, error)
+	DeleteBucket(*s3.DeleteBucketInput) (*s3.DeleteBucketOutput, error)
+	ListObjects(*s3.ListObjectsInput) (*s3.ListObjectsOutput, error)
+	DeleteObjects(*s3.DeleteObjectsInput) (*s3.DeleteObjectsOutput, error)
+	PutBucketPolicy(*s3.PutBucketPolicyInput) (*s3.PutBucketPolicyOutput, error)
+}
+
 // Bucket contains all data to interact w/ AWS S3
 type Bucket struct {
-	s3    *s3.S3
+	s3    bucketHandler
 	queue *queue.Q
 }
 

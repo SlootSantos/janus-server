@@ -1,8 +1,6 @@
 package cdn
 
 import (
-	"time"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudfront"
 )
@@ -38,7 +36,7 @@ func (c *CDN) constructStandardDistroConfig(bucketID string, originAccessID stri
 
 	config := &cloudfront.CreateDistributionInput{
 		DistributionConfig: &cloudfront.DistributionConfig{
-			CallerReference:      aws.String(time.Now().String() + bucketID),
+			CallerReference:      aws.String(bucketID),
 			Comment:              aws.String(bucketID),
 			Enabled:              aws.Bool(true),
 			DefaultCacheBehavior: cacheBehavior,

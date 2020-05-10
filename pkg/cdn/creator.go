@@ -71,8 +71,6 @@ func (c *CDN) Destroy(ctx context.Context, param *jam.DeletionParam) error {
 		}
 	}
 
-	log.Println(res)
-
 	c.queue.DestroyCDN.Push(
 		queue.QueueMessage{
 			queue.MessageAccessDistroID: &sqs.MessageAttributeValue{

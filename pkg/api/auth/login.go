@@ -48,7 +48,7 @@ func HandleCallback(w http.ResponseWriter, req *http.Request) {
 	state := req.FormValue("state")
 
 	if state != OauthStateString() {
-		fmt.Printf("invalid oauth state, expected '%s', got '%s'\n", OauthStateString, state)
+		fmt.Printf("invalid oauth state, expected '%s', got '%s'\n", OauthStateString(), state)
 		http.Redirect(w, req, "/", http.StatusTemporaryRedirect)
 		return
 	}

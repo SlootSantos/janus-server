@@ -1,3 +1,5 @@
+//go:generate mockgen -source=$GOFILE -destination=mock.$GOFILE -package=$GOPACKAGE
+
 package cdn
 
 import (
@@ -8,9 +10,18 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudfront"
 )
 
+type cdnandler interface {
+	CreateDistribution(*cloudfront.CreateDistributionInput) (*cloudfront.CreateDistributionOutput, error)
+	DeleteDistribution(*cloudfront.DeleteDistributionInput) (*cloudfront.DeleteDistributionOutput, error)
+	GetDistribution(*cloudfront.GetDistributionInput) (*cloudfront.GetDistributionOutput, error)
+	UpdateDistribution(*cloudfront.UpdateDistributionInput) (*cloudfront.UpdateDistributionOutput, error)
+	GetCloudFrontOriginAccessIdentity(*cloudfront.GetCloudFrontOriginAccessIdentityInput) (*cloudfront.GetCloudFrontOriginAccessIdentityOutput, error)
+	CreateCloudFrontOriginAccessIdentity(*cloudfront.CreateCloudFrontOriginAccessIdentityInput) (*cloudfront.CreateCloudFrontOriginAccessIdentityOutput, error)
+}
+
 // CDN contains all data to interact w/ AWS Cloudfront
 type CDN struct {
-	cdn   *cloudfront.CloudFront
+	cdn   cdnandler
 	queue *queue.Q
 }
 

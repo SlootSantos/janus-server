@@ -2,7 +2,6 @@ package cdn
 
 import (
 	"log"
-	"time"
 
 	"github.com/SlootSantos/janus-server/pkg/queue"
 	"github.com/aws/aws-sdk-go/aws"
@@ -14,19 +13,11 @@ func (c *CDN) createOrginAccess(bucketID string) (*string, error) {
 	accessID, err := c.cdn.CreateCloudFrontOriginAccessIdentity(&cloudfront.CreateCloudFrontOriginAccessIdentityInput{
 		CloudFrontOriginAccessIdentityConfig: &cloudfront.OriginAccessIdentityConfig{
 			Comment:         aws.String("source-cdn-" + bucketID),
-			CallerReference: aws.String(time.Now().String() + bucketID),
+			CallerReference: aws.String(bucketID),
 		},
 	})
 	if err != nil {
 		log.Println(err)
-		return aws.String(""), err
-	}
-
-	originAccess, err := c.cdn.GetCloudFrontOriginAccessIdentity(&cloudfront.GetCloudFrontOriginAccessIdentityInput{
-		Id: accessID.CloudFrontOriginAccessIdentity.Id,
-	})
-	if err != nil {
-		log.Println("IDENTIITY ERROR", err)
 		return aws.String(""), err
 	}
 
@@ -41,5 +32,5 @@ func (c *CDN) createOrginAccess(bucketID string) (*string, error) {
 		},
 	})
 
-	return originAccess.CloudFrontOriginAccessIdentity.Id, nil
+	return accessID.CloudFrontOriginAccessIdentity.Id, nil
 }

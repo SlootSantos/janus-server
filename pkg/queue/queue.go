@@ -1,3 +1,5 @@
+//go:generate mockgen -source=$GOFILE -destination=mock.$GOFILE -package=$GOPACKAGE
+
 package queue
 
 import (
@@ -11,10 +13,17 @@ import (
 )
 
 type QueueMessage map[string]*sqs.MessageAttributeValue
+
+type queueHandler interface {
+	SendMessage(*sqs.SendMessageInput) (*sqs.SendMessageOutput, error)
+	ReceiveMessage(*sqs.ReceiveMessageInput) (*sqs.ReceiveMessageOutput, error)
+	DeleteMessage(*sqs.DeleteMessageInput) (*sqs.DeleteMessageOutput, error)
+}
+
 type Queue struct {
 	name              string
 	url               string
-	sqs               *sqs.SQS
+	sqs               queueHandler
 	visibilityTimeout int64
 	listenerFunc      func(QueueMessage) bool
 }
@@ -123,4 +132,23 @@ func (q *Queue) SetListener(listener func(QueueMessage) bool) error {
 	go q.Pull()
 
 	return nil
+}
+
+func NewMockQ(sqsMock *MockqueueHandler) Q {
+	q := Q{
+		AccessID: Queue{
+			name:              "AccessIDQueue",
+			url:               "url",
+			visibilityTimeout: 20,
+			sqs:               sqsMock,
+		},
+		DestroyCDN: Queue{
+			name:              "DestroyCDNQueue",
+			visibilityTimeout: 300,
+			url:               "url",
+			sqs:               sqsMock,
+		},
+	}
+
+	return q
 }

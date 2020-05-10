@@ -59,11 +59,5 @@ func (b *Bucket) Destroy(ctx context.Context, param *jam.DeletionParam) error {
 
 // List returns a list of all S3-Buckets at AWS
 func (b *Bucket) List(ctx context.Context) string {
-	res, err := b.s3.ListBuckets(&s3.ListBucketsInput{})
-	if err != nil {
-		log.Println("FUCK", err)
-		return ""
-	}
-
-	return res.String()
+	return ""
 }
