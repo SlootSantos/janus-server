@@ -38,6 +38,7 @@ jobs:
     steps:
       - checkout
       - run: ./ci/push_docker_image.sh
+      - run: ls -la
 
 workflows:
   version: 2
