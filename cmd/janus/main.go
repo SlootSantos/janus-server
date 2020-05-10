@@ -39,7 +39,7 @@ func createDependendableJAMCreator() *jam.Creator {
 	bucket := bucket.New(awsSess, &q)
 	repo := repo.New()
 
-	go storage.Init(awsSess)
+	storage.Init(awsSess)
 
 	log.Print("DONE: setting up dependencies")
 	return jam.New(bucket, cdn, repo)

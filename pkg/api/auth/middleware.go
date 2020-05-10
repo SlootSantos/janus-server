@@ -41,8 +41,8 @@ func WithCredentials(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		req = createCtxWithToken(cookie, req)
-		next(w, req)
+		newReq := createCtxWithToken(cookie, req)
+		next(w, newReq)
 	}
 }
 
