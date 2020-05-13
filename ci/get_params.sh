@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 
+ENV_FILE_INPUT=$PWD/.env.example
+ENV_FILE_OUTPUT=$PWD/.env
+
 # get parameter from AWS parameter store
 getSSMParam() {
+    echo ---------------
     echo $1
     PARAM_VAL=$(aws ssm get-parameter --name janus-env-$1 --region us-east-1 | jq -r '.Parameter.Value')
-    echo "$1=$PARAM_VAL" >> .new_env
+    echo "$1=$PARAM_VAL" >> $ENV_FILE_OUTPUT
 }
 
 # split eachline at the "=" so all env's get overwritten during script
@@ -22,4 +26,4 @@ while read line;
         fi
 
         getValueForEnv $line;
-    done < $PWD/.env
+    done < $ENV_FILE_INPUT
