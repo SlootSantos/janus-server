@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+
+mkdir ~/.aws 
 AWS_CRED_FILE=~/.aws/credentials
 
 echo "[default]" > $AWS_CRED_FILE
