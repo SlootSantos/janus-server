@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # login to ECR
-$(AWS_SECRET_ACCESS_KEY=$AWS_SECRET_KEY AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID aws ecr get-login --no-include-email --region us-east-1)
+$(aws ecr get-login --no-include-email --region us-east-1)
 
 docker build -t janus/server:latest -f "${PWD}/Dockerfile" ${PWD}
 
