@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -36,8 +37,8 @@ type Q struct {
 func New(sess *session.Session) Q {
 	s := sqs.New(sess)
 
-	urlDestroyCDN := "https://sqs.us-east-1.amazonaws.com/108151951856/janus-destroy-cdn-q"
-	urlAccessID := "https://sqs.us-east-1.amazonaws.com/108151951856/janus-access-id-q"
+	urlDestroyCDN := os.Getenv("SQS_URL_DESTROY_CDN")
+	urlAccessID := os.Getenv("SQS_URL_ACCESS_ID")
 
 	q := Q{
 		AccessID: Queue{

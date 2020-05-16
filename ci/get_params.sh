@@ -7,7 +7,7 @@ ENV_FILE_OUTPUT=$PWD/.env
 getSSMParam() {
     echo ---------------
     echo "Setting ENV => $1"
-    PARAM_VAL=$(aws ssm get-parameter --name janus-env-$1 --region us-east-1 | jq -r '.Parameter.Value')
+    PARAM_VAL=$(aws ssm get-parameter --name /janus/env/production/$1 --region us-east-1 --with-decryption | jq -r '.Parameter.Value')
     echo "$1=$PARAM_VAL" >> $ENV_FILE_OUTPUT
     echo -e "Done \xE2\x9C\x94"
 }

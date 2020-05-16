@@ -41,7 +41,7 @@ resource "aws_elastic_beanstalk_environment" "janus-server-production" {
   setting {
     namespace = "aws:autoscaling:launchconfiguration"
     name      = "IamInstanceProfile"
-    value     = "arn:aws:iam::108151951856:instance-profile/janus_instance_launch_role"
+    value     = aws_iam_instance_profile.janus_beanstalk_profile.arn
   }
 
   setting {
