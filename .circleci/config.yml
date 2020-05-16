@@ -23,9 +23,6 @@ jobs:
       - run: go test -v ./...
   upload:
     machine: true
-    environment:
-      AWS_ACCESS_KEY_ID: $INFRA_AWS_ACCESS_KEY
-      AWS_SECRET_ACCESS_KEY: $INFRA_AWS_SECRET_KEY
     steps:
       - checkout
       - run: ./ci/set_aws_cred.sh
