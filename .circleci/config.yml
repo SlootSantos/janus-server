@@ -1,6 +1,3 @@
-# Golang CircleCI 2.0 configuration file
-#
-# Check https://circleci.com/docs/2.0/language-go/ for more details
 version: 2.1
 orbs:
   aws-cli: circleci/aws-cli@1.0.0
@@ -31,6 +28,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: $INFRA_AWS_SECRET_KEY
     steps:
       - checkout
+      - run: ./ci/set_aws_cred.sh
       - run: ./ci/get_params.sh
       - run: ./ci/push_docker_image.sh
       - run: aws s3 cp Dockerrun.aws.json s3://elasticbeanstalk-us-east-1-108151951856/Dockerrun.aws.v_$CIRCLE_BUILD_NUM.json
