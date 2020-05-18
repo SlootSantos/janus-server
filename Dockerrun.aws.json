@@ -51,6 +51,12 @@
       "name": "redis",
       "image": "redis",
       "essential": true,
+      "environment": [
+        {
+          "name": "ALLOW_EMPTY_PASSWORD",
+          "value": "yes"
+        }
+      ],
       "memory": 128,
       "mountPoints": [
         {
