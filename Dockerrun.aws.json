@@ -12,12 +12,6 @@
       "host": {
         "sourcePath": "/var/run"
       }
-    },
-    {
-      "name": "redis",
-      "host": {
-        "sourcePath": "/var/data/redis"
-      }
     }
   ],
   "containerDefinitions": [
@@ -33,7 +27,6 @@
           "containerPort": 8888
         }
       ],
-      "links": ["redis"],
       "mountPoints": [
         {
           "sourceVolume": "janus",
@@ -43,25 +36,6 @@
         {
           "sourceVolume": "socket",
           "containerPath": "/var/run",
-          "readOnly": false
-        }
-      ]
-    },
-    {
-      "name": "redis",
-      "image": "redis",
-      "essential": true,
-      "environment": [
-        {
-          "name": "ALLOW_EMPTY_PASSWORD",
-          "value": "yes"
-        }
-      ],
-      "memory": 128,
-      "mountPoints": [
-        {
-          "sourceVolume": "redis",
-          "containerPath": "/var/data/redis",
           "readOnly": false
         }
       ]

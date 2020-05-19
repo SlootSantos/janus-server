@@ -8,17 +8,13 @@ import (
 )
 
 func connectRedis(database int) *redis.Client {
-	redisPassword := os.Getenv("REDIS_PASSWORD")
-	redisHostname := os.Getenv("REDIS_HOSTNAME")
-	redisPort := os.Getenv("REDIS_PORT")
+	redisPassword := os.Getenv("REDIS_CONN_PASSWORD")
+	redisHostname := os.Getenv("REDIS_CONN_HOSTNAME")
+	redisPort := os.Getenv("REDIS_CONN_PORT")
 
 	log.Println("-----------------")
 	log.Println("redisHostname", redisHostname)
 	log.Println("redisPort", redisPort)
-
-	for _, pair := range os.Environ() {
-		log.Println("PAR", pair)
-	}
 
 	redisAddr := redisHostname + ":" + redisPort
 
