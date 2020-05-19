@@ -35,6 +35,8 @@ func TestHandleLoginCheck(t *testing.T) {
 			t.Fatal(err)
 		}
 
+		req.Header.Set("Origin", "http://localhost:3000")
+
 		rr := httptest.NewRecorder()
 		handler := http.HandlerFunc(HandleLoginCheck)
 
