@@ -45,8 +45,11 @@ func newStackDB(db db, s *session.Session) *stack {
 
 func (s *stack) Get(key string) ([]StackModel, error) {
 	result, err := s.rC.Get(key).Result()
-	if err != nil {
-		return nil, err
+	if err == redis.Nil {
+		log.Println("Initalizing empty redis 'Stack' DB")
+		go s.Set(key, []StackModel{})
+
+		return []StackModel{}, err
 	}
 
 	if result == "" {

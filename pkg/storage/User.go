@@ -30,8 +30,11 @@ func newUserDB(db db, s *session.Session) *user {
 
 func (u *user) Get(key string) (*UserModel, error) {
 	result, err := u.rC.Get(key).Result()
-	if err != nil {
-		return nil, err
+	if err == redis.Nil {
+		log.Println("Initalizing empty redis 'User' DB")
+		go u.Set(key, &UserModel{})
+
+		return &UserModel{}, err
 	}
 
 	if result == "" {

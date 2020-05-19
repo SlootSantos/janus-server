@@ -170,6 +170,7 @@ func removeStack(stack *Stack, user string) (updatedList []byte, err error) {
 }
 
 func getAllStacks(user string) []Stack {
+	log.Println("trying to get")
 	stackList, _ := storage.Store.Stack.Get(user)
 
 	return stackList
