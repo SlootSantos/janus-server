@@ -47,6 +47,25 @@ resource "aws_route_table_association" "web-public-rt" {
 }
 
 # Define the security group for public subnet
+resource "aws_security_group" "janus_redis_cluster_sg" {
+  name        = "janus_redis_cluster_sg"
+  description = "Allow Redis access from same subnet"
+
+  ingress {
+    from_port   = 6379
+    to_port     = 6379
+    protocol    = "tcp"
+    cidr_blocks = [aws_subnet.janus-public-subnet.cidr_block]
+  }
+
+  vpc_id = aws_vpc.janus-vpc.id
+
+  tags = {
+    project = "janus"
+  }
+}
+
+# Define the security group for public subnet
 resource "aws_security_group" "janus_public_sg" {
   name        = "vpc_test_web"
   description = "Allow incoming HTTP connections & SSH access"

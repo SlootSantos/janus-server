@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/SlootSantos/janus-server/pkg/storage"
@@ -21,23 +20,21 @@ func WithCredentials(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		origin := req.Header.Get("Origin") // TODO! Whitelist
 
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Access-Control-Allow-Methods", "GET,POST,OPTIONS,DELETE")
+
 		if req.Method == http.MethodOptions {
-			w.Header().Set("Access-Control-Allow-Origin", origin)
-			w.Header().Set("Access-Control-Allow-Credentials", "true")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-			w.Header().Set("Access-Control-Allow-Methods", "GET,POST,OPTIONS,DELETE")
 			w.WriteHeader(200)
 			return
 		}
 
-		w.Header().Set("Access-Control-Allow-Origin", origin)
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
-
 		cookie, _ := req.Cookie(OAuthCookieName)
 
 		if cookie == nil {
-			fmt.Println("no cookie")
-			http.Redirect(w, req, Login, http.StatusTemporaryRedirect)
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte("Missing Authentication Cookie"))
 			return
 		}
 

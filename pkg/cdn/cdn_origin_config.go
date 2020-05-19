@@ -1,13 +1,15 @@
 package cdn
 
 import (
+	"os"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudfront"
 )
 
 const originAccessIDPrefix = "origin-access-identity/cloudfront/"
 
-func (c *CDN) constructStandardDistroConfig(bucketID string, originAccessID string) *cloudfront.CreateDistributionInput {
+func (c *CDN) constructStandardDistroConfig(bucketID string, originAccessID string, stackID string) *cloudfront.CreateDistributionInput {
 	cacheBehavior := &cloudfront.DefaultCacheBehavior{
 		TargetOriginId:       aws.String(cdnPrefix + bucketID),
 		ViewerProtocolPolicy: aws.String("allow-all"),
@@ -34,8 +36,23 @@ func (c *CDN) constructStandardDistroConfig(bucketID string, originAccessID stri
 		},
 	}
 
+	aliases := &cloudfront.Aliases{
+		Items: []*string{
+			aws.String(stackID + "." + os.Getenv("DOMAIN_HOST")),
+		},
+		Quantity: aws.Int64(1),
+	}
+
+	certificate := &cloudfront.ViewerCertificate{
+		ACMCertificateArn:      aws.String(os.Getenv("DOMAIN_CERT_ARN")),
+		MinimumProtocolVersion: aws.String("TLSv1.2_2018"),
+		SSLSupportMethod:       aws.String("sni-only"),
+	}
+
 	config := &cloudfront.CreateDistributionInput{
 		DistributionConfig: &cloudfront.DistributionConfig{
+			Aliases:              aliases,
+			ViewerCertificate:    certificate,
 			CallerReference:      aws.String(bucketID),
 			Comment:              aws.String(bucketID),
 			Enabled:              aws.Bool(true),

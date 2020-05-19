@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/Microsoft/go-winio v0.4.14 // indirect
-	github.com/SlootSantos/marathon v0.0.0-20200321102710-c71e62513c69
+	github.com/SlootSantos/marathon v0.0.0-20200321102710-c71e62513c69 // indirect
 	github.com/aws/aws-sdk-go v1.30.7
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/docker/distribution v2.7.1+incompatible // indirect

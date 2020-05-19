@@ -8,6 +8,7 @@ import (
 )
 
 func (c *CDN) deleteDisabledDistro(message queue.QueueMessage) (ack bool) {
+	log.Println("RECEIVING DELETION MESSAGE")
 	distroID, ok := message[queue.MessageAccessDistroID]
 	if !ok {
 		log.Println("Handling queue message for CDN failed. attribute:", queue.MessageAccessDistroID, " does not exist on message")

@@ -26,7 +26,7 @@ func (c *CDN) Create(ctx context.Context, param *jam.CreationParam, out *jam.Out
 		return "", err
 	}
 
-	config := c.constructStandardDistroConfig(bucketID, *accessID)
+	config := c.constructStandardDistroConfig(bucketID, *accessID, param.ID)
 	createDistroOuput, err := c.cdn.CreateDistribution(config)
 	if err != nil {
 		fmt.Println(err)
@@ -37,6 +37,8 @@ func (c *CDN) Create(ctx context.Context, param *jam.CreationParam, out *jam.Out
 		ID:       *createDistroOuput.Distribution.Id,
 		AccessID: *accessID,
 	}
+
+	c.createDNSRecord(*createDistroOuput.Distribution.DomainName, param.ID)
 
 	log.Println("DONE: creating up CDN ID:", out.CDN.ID)
 	return "", nil
@@ -83,6 +85,8 @@ func (c *CDN) Destroy(ctx context.Context, param *jam.DeletionParam) error {
 			},
 		},
 	)
+
+	c.destroyDNSRecord(param.CDN.Domain, param.ID)
 
 	log.Println("DONE: destroying CDN ID:", param.CDN.ID)
 	return nil

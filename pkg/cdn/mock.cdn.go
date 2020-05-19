@@ -6,6 +6,7 @@ package cdn
 
 import (
 	cloudfront "github.com/aws/aws-sdk-go/service/cloudfront"
+	route53 "github.com/aws/aws-sdk-go/service/route53"
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
 )
@@ -121,4 +122,42 @@ func (m *Mockcdnandler) CreateCloudFrontOriginAccessIdentity(arg0 *cloudfront.Cr
 func (mr *MockcdnandlerMockRecorder) CreateCloudFrontOriginAccessIdentity(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCloudFrontOriginAccessIdentity", reflect.TypeOf((*Mockcdnandler)(nil).CreateCloudFrontOriginAccessIdentity), arg0)
+}
+
+// Mockdnshandler is a mock of dnshandler interface
+type Mockdnshandler struct {
+	ctrl     *gomock.Controller
+	recorder *MockdnshandlerMockRecorder
+}
+
+// MockdnshandlerMockRecorder is the mock recorder for Mockdnshandler
+type MockdnshandlerMockRecorder struct {
+	mock *Mockdnshandler
+}
+
+// NewMockdnshandler creates a new mock instance
+func NewMockdnshandler(ctrl *gomock.Controller) *Mockdnshandler {
+	mock := &Mockdnshandler{ctrl: ctrl}
+	mock.recorder = &MockdnshandlerMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use
+func (m *Mockdnshandler) EXPECT() *MockdnshandlerMockRecorder {
+	return m.recorder
+}
+
+// ChangeResourceRecordSets mocks base method
+func (m *Mockdnshandler) ChangeResourceRecordSets(arg0 *route53.ChangeResourceRecordSetsInput) (*route53.ChangeResourceRecordSetsOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ChangeResourceRecordSets", arg0)
+	ret0, _ := ret[0].(*route53.ChangeResourceRecordSetsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ChangeResourceRecordSets indicates an expected call of ChangeResourceRecordSets
+func (mr *MockdnshandlerMockRecorder) ChangeResourceRecordSets(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChangeResourceRecordSets", reflect.TypeOf((*Mockdnshandler)(nil).ChangeResourceRecordSets), arg0)
 }

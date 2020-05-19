@@ -8,11 +8,13 @@ services:
     - .:/code
     - logvolume01:/var/log
     - /var/run/docker.sock:/var/run/docker.sock
-    links:
-    - redis
+
   redis:
+    environment: 
+      - ALLOW_EMPTY_PASSWORD=yes
     image: redis
     ports:
         - "6378:6379"
+  
 volumes:
   logvolume01: {}
