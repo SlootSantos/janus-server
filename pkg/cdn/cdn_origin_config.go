@@ -49,10 +49,23 @@ func (c *CDN) constructStandardDistroConfig(bucketID string, originAccessID stri
 		SSLSupportMethod:       aws.String("sni-only"),
 	}
 
+	customErrorBehaviour := &cloudfront.CustomErrorResponses{
+		Items: []*cloudfront.CustomErrorResponse{
+			{
+				ErrorCode:        aws.Int64(404),
+				ResponseCode:     aws.String("200"),
+				ResponsePagePath: aws.String("/index.html"),
+			},
+		},
+		Quantity: aws.Int64(1),
+	}
+
 	config := &cloudfront.CreateDistributionInput{
 		DistributionConfig: &cloudfront.DistributionConfig{
+			CustomErrorResponses: customErrorBehaviour,
 			Aliases:              aliases,
 			ViewerCertificate:    certificate,
+			DefaultRootObject:    aws.String("index.html"),
 			CallerReference:      aws.String(bucketID),
 			Comment:              aws.String(bucketID),
 			Enabled:              aws.Bool(true),

@@ -10,6 +10,7 @@ import (
 
 	"github.com/SlootSantos/janus-server/pkg/api/auth"
 	"github.com/SlootSantos/janus-server/pkg/storage"
+	"github.com/go-redis/redis/v7"
 	"github.com/google/go-github/github"
 )
 
@@ -43,8 +44,9 @@ func handlePOST(w http.ResponseWriter, req *http.Request) {
 
 func list(ctx context.Context) []byte {
 	reposStorage, err := storage.Store.Repo.Get(ctx.Value(auth.ContextKeyUserName).(string))
-	if err != nil {
-		log.Println(err)
+
+	if err == redis.Nil {
+		log.Println("dayum empty", reposStorage)
 	}
 
 	if reposStorage == "" {
@@ -67,7 +69,10 @@ func list(ctx context.Context) []byte {
 		}
 
 		reposJSON, _ := json.Marshal(repoList)
-		err = storage.Store.Repo.Set(ctx.Value(auth.ContextKeyUserName).(string), reposJSON)
+		_, err = storage.Store.Repo.Set(ctx.Value(auth.ContextKeyUserName).(string), reposJSON)
+		if err != nil {
+			log.Println(err)
+		}
 
 		return reposJSON
 	}

@@ -23,7 +23,7 @@ func New() *Repo {
 type hookConfig map[string]interface{}
 
 var hookName = "web"
-var hookURL = "https://c4bdefb9.ngrok.io/hook" // FROM ENV?
+var hookURL = "https://312c7c53.ngrok.io/hook" // FROM ENV?
 
 func (r *Repo) Create(ctx context.Context, params *jam.CreationParam, out *jam.OutputParam) (string, error) {
 	repoName := params.Repo.Name
