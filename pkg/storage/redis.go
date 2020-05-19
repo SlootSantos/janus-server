@@ -3,7 +3,6 @@ package storage
 import (
 	"log"
 	"os"
-	"strings"
 
 	"github.com/go-redis/redis/v7"
 )
@@ -17,7 +16,13 @@ func connectRedis(database int) *redis.Client {
 	log.Println("redisHostname", redisHostname)
 	log.Println("redisPort", redisPort)
 
-	redisAddr := strings.Join([]string{redisHostname, redisPort}, ":")
+	for _, pair := range os.Environ() {
+		log.Println("PAR", pair)
+	}
+
+	redisAddr := redisHostname + ":" + redisPort
+
+	log.Println("REDIS ADDRESS", redisAddr)
 
 	client := redis.NewClient(&redis.Options{
 		Password: redisPassword,
