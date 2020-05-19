@@ -2,6 +2,7 @@ package cdn
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/SlootSantos/janus-server/pkg/jam"
@@ -13,13 +14,16 @@ import (
 
 func TestCDN_Create(t *testing.T) {
 	t.Run("should create bucket", func(t *testing.T) {
+		os.Setenv("DOMAIN_HOST", "test")
 		ctrl := gomock.NewController(t)
 		cdnMock := NewMockcdnandler(ctrl)
+		dnsMock := NewMockdnshandler(ctrl)
 		sqsMock := queue.NewMockqueueHandler(ctrl)
 		qMock := queue.NewMockQ(sqsMock)
 
 		c := CDN{
 			cdn:   cdnMock,
+			dns:   dnsMock,
 			queue: &qMock,
 		}
 
@@ -29,7 +33,7 @@ func TestCDN_Create(t *testing.T) {
 			Bucket: struct{ ID string }{"ID_12345"},
 		}
 
-		expectedCallParam := c.constructStandardDistroConfig("ID_12345", "ABCDEFG")
+		expectedCallParam := c.constructStandardDistroConfig("ID_12345", "ABCDEFG", "ID_12345")
 		returnCreateOrigin := &cloudfront.CreateCloudFrontOriginAccessIdentityOutput{
 			CloudFrontOriginAccessIdentity: &cloudfront.OriginAccessIdentity{
 				Id: aws.String("ABCDEFG"),
@@ -44,6 +48,7 @@ func TestCDN_Create(t *testing.T) {
 
 		cdnMock.EXPECT().CreateCloudFrontOriginAccessIdentity(gomock.Any()).Times(1).Return(returnCreateOrigin, nil)
 		cdnMock.EXPECT().CreateDistribution(expectedCallParam).Times(1).Return(returnCreateDistro, nil)
+		dnsMock.EXPECT().ChangeResourceRecordSets(gomock.Any()).Times(1)
 		sqsMock.EXPECT().SendMessage(gomock.Any()).Times(1)
 
 		_, err := c.Create(context.Background(), input, output)
@@ -56,11 +61,13 @@ func TestCDN_Create(t *testing.T) {
 	t.Run("should mutate output param", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		cdnMock := NewMockcdnandler(ctrl)
+		dnsMock := NewMockdnshandler(ctrl)
 		sqsMock := queue.NewMockqueueHandler(ctrl)
 		qMock := queue.NewMockQ(sqsMock)
 
 		c := CDN{
 			cdn:   cdnMock,
+			dns:   dnsMock,
 			queue: &qMock,
 		}
 
@@ -70,7 +77,7 @@ func TestCDN_Create(t *testing.T) {
 			Bucket: struct{ ID string }{"ID_12345"},
 		}
 
-		expectedCallParam := c.constructStandardDistroConfig("ID_12345", "ABCDEFG")
+		expectedCallParam := c.constructStandardDistroConfig("ID_12345", "ABCDEFG", "ID_12345")
 		returnCreateOrigin := &cloudfront.CreateCloudFrontOriginAccessIdentityOutput{
 			CloudFrontOriginAccessIdentity: &cloudfront.OriginAccessIdentity{
 				Id: aws.String("ABCDEFG"),
@@ -85,6 +92,7 @@ func TestCDN_Create(t *testing.T) {
 
 		cdnMock.EXPECT().CreateCloudFrontOriginAccessIdentity(gomock.Any()).Times(1).Return(returnCreateOrigin, nil)
 		cdnMock.EXPECT().CreateDistribution(expectedCallParam).Times(1).Return(returnCreateDistro, nil)
+		dnsMock.EXPECT().ChangeResourceRecordSets(gomock.Any()).Times(1)
 		sqsMock.EXPECT().SendMessage(gomock.Any()).Times(1)
 
 		c.Create(context.Background(), input, output)
@@ -99,11 +107,13 @@ func TestCDN_Delete(t *testing.T) {
 	t.Run("should delete bucket", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		cdnMock := NewMockcdnandler(ctrl)
+		dnsMock := NewMockdnshandler(ctrl)
 		sqsMock := queue.NewMockqueueHandler(ctrl)
 		qMock := queue.NewMockQ(sqsMock)
 
 		c := CDN{
 			cdn:   cdnMock,
+			dns:   dnsMock,
 			queue: &qMock,
 		}
 
@@ -139,6 +149,7 @@ func TestCDN_Delete(t *testing.T) {
 
 		cdnMock.EXPECT().GetDistribution(expectedGetDistroCall).Times(1).Return(returnGetDistro, nil)
 		cdnMock.EXPECT().UpdateDistribution(expectedUpdateDistroCall).Times(1).Return(returnUpdateDistro, nil)
+		dnsMock.EXPECT().ChangeResourceRecordSets(gomock.Any()).Times(1)
 		sqsMock.EXPECT().SendMessage(gomock.Any()).Times(1)
 
 		err := c.Destroy(context.Background(), input)
