@@ -1,6 +1,6 @@
 #!/bin/bash
 
-git clone https://github.com/${REPO_FULL}
+git clone https://${OAUTH_TOKEN}:x-oauth-basic@github.com/${REPO_FULL}.git
 cd ${REPO}
 
 echo "Start Building"

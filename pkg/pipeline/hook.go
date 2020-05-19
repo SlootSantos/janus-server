@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"log"
@@ -10,6 +11,7 @@ import (
 	"github.com/SlootSantos/janus-server/pkg/jam"
 	"github.com/SlootSantos/janus-server/pkg/storage"
 	"github.com/google/go-github/github"
+	"golang.org/x/oauth2"
 )
 
 type repository struct {
@@ -55,6 +57,7 @@ func HandleHook(w http.ResponseWriter, req *http.Request) {
 				Repo:      stack.Repo.Name,
 				CDN:       stack.CDN.ID,
 				User:      *e.Repo.Owner.Name,
+				Token:     GetUserToken(*e.Repo.Owner.Name),
 			})
 
 		default:
@@ -78,4 +81,18 @@ func getStackByRepo(repoName string, user string) (*jam.Stack, error) {
 	}
 
 	return nil, errors.New("can not find stack for repo" + repoName)
+}
+
+func GetUserToken(user string) string {
+	u, _ := storage.Store.User.Get(user)
+
+	var token oauth2.Token
+	err := json.Unmarshal([]byte(u.Token), &token)
+	if err != nil {
+		panic("Not working ")
+	}
+
+	log.Printf("TOKEN should be 8 <something>: %s", token.AccessToken)
+	return token.AccessToken
+	// return token.AccessToken, errors.New("can not find stack for repo" + repoName)
 }

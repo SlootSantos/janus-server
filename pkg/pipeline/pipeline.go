@@ -23,6 +23,7 @@ type ContainerRunParams struct {
 	Repo      string
 	User      string
 	CDN       string
+	Token     string
 }
 
 const (
@@ -33,6 +34,7 @@ const (
 	repo      string = "REPO"
 	user      string = "USER"
 	cdn       string = "CDN"
+	token     string = "OAUTH_TOKEN"
 )
 
 const (
@@ -90,7 +92,6 @@ func createRunnableContainer(cli *client.Client, params ContainerRunParams) cont
 	log.Println("START: pulling Docker container")
 
 	reader, err := cli.ImagePull(context.Background(), buildImageHub, types.ImagePullOptions{})
-	// reader, err := cli.ImagePull(context.Background(), "docker.io/library/hello-world", types.ImagePullOptions{})
 	if err != nil {
 		panic(errors.New("could not pull container" + err.Error()))
 	}
@@ -107,16 +108,7 @@ func createRunnableContainer(cli *client.Client, params ContainerRunParams) cont
 			PortBindings: createPortBinding(),
 		}, nil, "",
 	)
-	// cont, err := cli.ContainerCreate(
-	// 	context.Background(),
-	// 	&container.Config{
-	// 		Image: "hello-world",
-	// 		// Env:   createContainerEnv(params),
-	// 	},
-	// 	&container.HostConfig{
-	// 		PortBindings: createPortBinding(),
-	// 	}, nil, "",
-	// )
+
 	if err != nil {
 		panic(err)
 	}
@@ -150,6 +142,7 @@ func createContainerEnv(params ContainerRunParams) []string {
 		joinEnv(user, params.User),
 		joinEnv(cdn, params.CDN),
 		joinEnv(repoFull, params.User+"/"+params.Repo),
+		joinEnv(token, params.Token),
 	}
 }
 
