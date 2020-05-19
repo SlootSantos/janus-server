@@ -22,9 +22,10 @@ const LoginCheck = "/login/check"
 const Callback = "/callback"
 
 func HandleLoginCheck(w http.ResponseWriter, req *http.Request) {
+	origin := req.Header.Get("Origin")
 	cookie, _ := req.Cookie(OAuthCookieName)
 	cookieSet := true
-	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+	w.Header().Set("Access-Control-Allow-Origin", origin)
 	w.Header().Set("Access-Control-Allow-Credentials", "true")
 	w.Header().Set("Content-Type", "application/json")
 
@@ -45,6 +46,7 @@ func HandleLogin(w http.ResponseWriter, req *http.Request) {
 
 // HandleCallback handles teh github authentication callback
 func HandleCallback(w http.ResponseWriter, req *http.Request) {
+	origin := req.Header.Get("origin")
 	state := req.FormValue("state")
 
 	if state != OauthStateString() {
@@ -58,7 +60,7 @@ func HandleCallback(w http.ResponseWriter, req *http.Request) {
 	storeUser(user, tokenStr)
 	setCookie(w, user)
 
-	http.Redirect(w, req, "http://localhost:3000/admin/dashboard", http.StatusTemporaryRedirect)
+	http.Redirect(w, req, origin+"/admin/dashboard", http.StatusTemporaryRedirect)
 }
 
 func getToken(code string) (string, error) {
