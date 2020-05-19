@@ -149,7 +149,7 @@ func TestCDN_Delete(t *testing.T) {
 
 		cdnMock.EXPECT().GetDistribution(expectedGetDistroCall).Times(1).Return(returnGetDistro, nil)
 		cdnMock.EXPECT().UpdateDistribution(expectedUpdateDistroCall).Times(1).Return(returnUpdateDistro, nil)
-		// dnsMock.EXPECT().ChangeResourceRecordSets(gomock.Any()).Times(1)
+		dnsMock.EXPECT().ChangeResourceRecordSets(gomock.Any()).Times(1)
 		sqsMock.EXPECT().SendMessage(gomock.Any()).Times(1)
 
 		err := c.Destroy(context.Background(), input)
