@@ -85,3 +85,14 @@ resource "aws_ssm_parameter" "janus_domain_zone_id" {
        "project" = "janus"
    }
 }
+
+resource "aws_ssm_parameter" "janus_git_hook_url" {
+  name  = "/janus/env/production/GIT_HOOK_URL"
+  type  = "String"
+  value = join("", ["https://api.",trimsuffix(data.aws_route53_zone.janus_dns.name, "."), "/hook"])
+  overwrite = true
+   tags = {
+       "env"     = "production"
+       "project" = "janus"
+   }
+}

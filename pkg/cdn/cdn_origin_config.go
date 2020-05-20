@@ -11,8 +11,9 @@ const originAccessIDPrefix = "origin-access-identity/cloudfront/"
 
 func (c *CDN) constructStandardDistroConfig(bucketID string, originAccessID string, stackID string) *cloudfront.CreateDistributionInput {
 	cacheBehavior := &cloudfront.DefaultCacheBehavior{
+		Compress:             aws.Bool(true),
+		ViewerProtocolPolicy: aws.String("redirect-to-https"),
 		TargetOriginId:       aws.String(cdnPrefix + bucketID),
-		ViewerProtocolPolicy: aws.String("allow-all"),
 		MinTTL:               aws.Int64(10),
 		TrustedSigners: &cloudfront.TrustedSigners{
 			Quantity: aws.Int64(0),

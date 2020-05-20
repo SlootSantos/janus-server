@@ -50,23 +50,23 @@ resource "aws_elastic_beanstalk_environment" "janus-server-production" {
     value     = "t2.micro"
   }
 
-  #   setting {
-  #     namespace = "aws:elb:listener:443"
-  #     name      = "ListenerProtocol"
-  #     value     = "HTTPS"
-  #   }
+    setting {
+      namespace = "aws:elb:listener:443"
+      name      = "ListenerProtocol"
+      value     = "HTTPS"
+    }
 
-  #   setting {
-  #     namespace = "aws:elb:listener:443"
-  #     name      = "InstancePort"
-  #     value     = "80"
-  #   }
+    setting {
+      namespace = "aws:elb:listener:443"
+      name      = "InstancePort"
+      value     = "80"
+    }
 
-  #   setting {
-  #     namespace = "aws:elb:listener:443"
-  #     name      = "SSLCertificateId"
-  #     value     = "${data.aws_acm_certificate.janus_dns_cert_euc.arn}"
-  #   }
+    setting {
+      namespace = "aws:elb:listener:443"
+      name      = "SSLCertificateId"
+      value     = data.aws_acm_certificate.janus_dns_cert_euc_wild.arn
+    }
 
   setting {
     namespace = "aws:autoscaling:launchconfiguration"

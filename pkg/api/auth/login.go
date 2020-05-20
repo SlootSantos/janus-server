@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/SlootSantos/janus-server/pkg/storage"
 	"github.com/google/go-github/github"
@@ -99,6 +100,8 @@ func setCookie(w http.ResponseWriter, user *github.User) {
 	})
 
 	sessionCookie := &http.Cookie{
+		SameSite: http.SameSiteLaxMode,
+		Secure:   os.Getenv("ENV") != "local",
 		Name:     OAuthCookieName,
 		Value:    cookieValue,
 		Path:     "/",

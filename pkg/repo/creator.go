@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/SlootSantos/janus-server/pkg/api/auth"
 	"github.com/SlootSantos/janus-server/pkg/jam"
@@ -23,9 +24,9 @@ func New() *Repo {
 type hookConfig map[string]interface{}
 
 var hookName = "web"
-var hookURL = "https://312c7c53.ngrok.io/hook" // FROM ENV?
 
 func (r *Repo) Create(ctx context.Context, params *jam.CreationParam, out *jam.OutputParam) (string, error) {
+	hookURL := os.Getenv("GIT_HOOK_URL")
 	repoName := params.Repo.Name
 	client := auth.AuthenticateUser(ctx.Value(auth.ContextKeyToken).(string))
 

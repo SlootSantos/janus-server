@@ -24,11 +24,16 @@ type dnshandler interface {
 	ChangeResourceRecordSets(*route53.ChangeResourceRecordSetsInput) (*route53.ChangeResourceRecordSetsOutput, error)
 }
 
+type certificateHandler interface {
+	ChangeResourceRecordSets(*route53.ChangeResourceRecordSetsInput) (*route53.ChangeResourceRecordSetsOutput, error)
+}
+
 // CDN contains all data to interact w/ AWS Cloudfront
 type CDN struct {
 	cdn   cdnandler
 	dns   dnshandler
 	queue *queue.Q
+	// acm   certificateHandler
 }
 
 // New creates a new CDN creator
@@ -39,6 +44,7 @@ func New(s *session.Session, q *queue.Q) *CDN {
 		cdn:   cloudfront.New(s),
 		dns:   route53.New(s),
 		queue: q,
+		// acm: acm.New(s),
 	}
 
 	q.DestroyCDN.SetListener(cdn.deleteDisabledDistro)
