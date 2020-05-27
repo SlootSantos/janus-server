@@ -7,14 +7,90 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudfront"
 )
 
-const originAccessIDPrefix = "origin-access-identity/cloudfront/"
+const (
+	originAccessIDPrefix      = "origin-access-identity/cloudfront/"
+	defaultRootObject         = "index.html"
+	cacheProtocolPolicy       = "redirect-to-https"
+	cacheForwardHeaderHost    = "Host"
+	certificateSSLMethods     = "sni-only"
+	certifcateProtocolVersion = "TLSv1.2_2018"
+	errorRequestCode          = 404
+	errorResponseCode         = "200"
+)
 
 func (c *CDN) constructStandardDistroConfig(bucketID string, originAccessID string, stackID string) *cloudfront.CreateDistributionInput {
-	cacheBehavior := &cloudfront.DefaultCacheBehavior{
-		Compress:             aws.Bool(true),
-		ViewerProtocolPolicy: aws.String("redirect-to-https"),
-		TargetOriginId:       aws.String(cdnPrefix + bucketID),
-		MinTTL:               aws.Int64(10),
+	config := &cloudfront.CreateDistributionInput{
+		DistributionConfig: &cloudfront.DistributionConfig{
+			DefaultRootObject:    aws.String(defaultRootObject),
+			CallerReference:      aws.String(bucketID),
+			Comment:              aws.String(bucketID),
+			Enabled:              aws.Bool(true),
+			Aliases:              constructAliases(stackID),
+			Origins:              constructS3Origins(bucketID, originAccessID),
+			ViewerCertificate:    constructCertificate(),
+			DefaultCacheBehavior: constructDefaultCacheBehavior(bucketID),
+			CustomErrorResponses: constructErrorBehavior(),
+		},
+	}
+
+	return config
+}
+
+func constructCertificate() *cloudfront.ViewerCertificate {
+	return &cloudfront.ViewerCertificate{
+		SSLSupportMethod:       aws.String(certificateSSLMethods),
+		ACMCertificateArn:      aws.String(os.Getenv("DOMAIN_CERT_ARN")),
+		MinimumProtocolVersion: aws.String(certifcateProtocolVersion),
+	}
+}
+
+func constructErrorBehavior() *cloudfront.CustomErrorResponses {
+	return &cloudfront.CustomErrorResponses{
+		Items: []*cloudfront.CustomErrorResponse{
+			{
+				ErrorCode:        aws.Int64(errorRequestCode),
+				ResponseCode:     aws.String(errorResponseCode),
+				ResponsePagePath: aws.String("/" + defaultRootObject),
+			},
+		},
+		Quantity: aws.Int64(1),
+	}
+}
+
+func constructAliases(subdomain string) *cloudfront.Aliases {
+	alias := subdomain + "." + os.Getenv("DOMAIN_HOST")
+
+	return &cloudfront.Aliases{
+		Quantity: aws.Int64(2),
+		Items: []*string{
+			aws.String(alias),
+			aws.String(greenDeploymentPrefix + alias),
+		},
+	}
+}
+
+func constructS3Origins(bucketID string, originAccessID string) *cloudfront.Origins {
+	return &cloudfront.Origins{
+		Quantity: aws.Int64(1),
+		Items: []*cloudfront.Origin{
+			{
+				Id:         aws.String(cdnPrefix + bucketID),
+				DomainName: aws.String(bucketID + cdnS3OriginSuffix),
+				S3OriginConfig: &cloudfront.S3OriginConfig{
+					OriginAccessIdentity: aws.String(originAccessIDPrefix + originAccessID),
+				},
+			},
+		},
+	}
+}
+
+func constructDefaultCacheBehavior(bucketID string) *cloudfront.DefaultCacheBehavior {
+	return &cloudfront.DefaultCacheBehavior{
+		MinTTL:                     aws.Int64(10),
+		Compress:                   aws.Bool(true),
+		TargetOriginId:             aws.String(cdnPrefix + bucketID),
+		ViewerProtocolPolicy:       aws.String(cacheProtocolPolicy),
+		LambdaFunctionAssociations: blueGreenLambdaFuncConfig(),
 		TrustedSigners: &cloudfront.TrustedSigners{
 			Quantity: aws.Int64(0),
 			Enabled:  aws.Bool(false),
@@ -24,59 +100,12 @@ func (c *CDN) constructStandardDistroConfig(bucketID string, originAccessID stri
 			Cookies: &cloudfront.CookiePreference{
 				Forward: aws.String("none"),
 			},
-		},
-	}
-
-	origins := []*cloudfront.Origin{
-		{
-			DomainName: aws.String(bucketID + cdnS3OriginSuffix),
-			Id:         aws.String(cdnPrefix + bucketID),
-			S3OriginConfig: &cloudfront.S3OriginConfig{
-				OriginAccessIdentity: aws.String("origin-access-identity/cloudfront/" + originAccessID),
-			},
-		},
-	}
-
-	aliases := &cloudfront.Aliases{
-		Items: []*string{
-			aws.String(stackID + "." + os.Getenv("DOMAIN_HOST")),
-		},
-		Quantity: aws.Int64(1),
-	}
-
-	certificate := &cloudfront.ViewerCertificate{
-		ACMCertificateArn:      aws.String(os.Getenv("DOMAIN_CERT_ARN")),
-		MinimumProtocolVersion: aws.String("TLSv1.2_2018"),
-		SSLSupportMethod:       aws.String("sni-only"),
-	}
-
-	customErrorBehaviour := &cloudfront.CustomErrorResponses{
-		Items: []*cloudfront.CustomErrorResponse{
-			{
-				ErrorCode:        aws.Int64(404),
-				ResponseCode:     aws.String("200"),
-				ResponsePagePath: aws.String("/index.html"),
-			},
-		},
-		Quantity: aws.Int64(1),
-	}
-
-	config := &cloudfront.CreateDistributionInput{
-		DistributionConfig: &cloudfront.DistributionConfig{
-			CustomErrorResponses: customErrorBehaviour,
-			Aliases:              aliases,
-			ViewerCertificate:    certificate,
-			DefaultRootObject:    aws.String("index.html"),
-			CallerReference:      aws.String(bucketID),
-			Comment:              aws.String(bucketID),
-			Enabled:              aws.Bool(true),
-			DefaultCacheBehavior: cacheBehavior,
-			Origins: &cloudfront.Origins{
+			Headers: &cloudfront.Headers{
+				Items: []*string{
+					aws.String(cacheForwardHeaderHost),
+				},
 				Quantity: aws.Int64(1),
-				Items:    origins,
 			},
 		},
 	}
-
-	return config
 }

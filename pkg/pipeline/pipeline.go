@@ -65,26 +65,36 @@ func BuildRepoSources(params ContainerRunParams) {
 
 func executeContainer(cli *client.Client, cont container.ContainerCreateCreatedBody) error {
 	log.Println("START: executing Docker container")
+
 	err := cli.ContainerStart(context.Background(), cont.ID, types.ContainerStartOptions{})
 	if err != nil {
 		return err
 	}
 
-	cli.ContainerWait(context.Background(), cont.ID)
+	streamDockerLogs(cli, cont.ID)
 
-	out, err := cli.ContainerLogs(
-		context.Background(),
-		cont.ID,
-		types.ContainerLogsOptions{
-			ShowStdout: true,
-			ShowStderr: true,
-			Timestamps: true,
-			Details:    true,
-		})
+	log.Println("DONE: executing Docker container")
+	return err
+}
+
+func streamDockerLogs(cli *client.Client, containerID string) error {
+	logConfig := types.ContainerLogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+		Timestamps: true,
+		Details:    true,
+		Follow:     true,
+	}
+
+	out, err := cli.ContainerLogs(context.Background(), containerID, logConfig)
+	defer out.Close()
+	if err != nil {
+		return err
+	}
 
 	stdcopy.StdCopy(os.Stdout, os.Stderr, out)
 
-	log.Println("DONE: executing Docker container")
+	_, err = cli.ContainerWait(context.Background(), containerID)
 	return err
 }
 
