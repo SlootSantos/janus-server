@@ -20,6 +20,7 @@ type StackRepo = storage.RepoModel
 // CreationParam contains a compound parameter type for all strackResource creations
 type CreationParam struct {
 	ID     string
+	CDN    StackCDN
 	Bucket struct {
 		ID string
 	}

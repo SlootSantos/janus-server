@@ -7,8 +7,10 @@ import (
 	"net/http"
 )
 
-type jamPOSTBody struct {
-	Repository string
+type stackConfig struct {
+	Repository      string
+	CustomSubDomain string
+	CustomDomain    string
 }
 
 // RoutePrefix is the JAM endpoint
@@ -31,15 +33,15 @@ func (j *Creator) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func (j *Creator) handlePOST(w http.ResponseWriter, req *http.Request) {
-	var jb jamPOSTBody
+	var config stackConfig
 
-	err := json.NewDecoder(req.Body).Decode(&jb)
+	err := json.NewDecoder(req.Body).Decode(&config)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	updatedList, err := j.build(req.Context(), jb.Repository)
+	updatedList, err := j.build(req.Context(), config)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return

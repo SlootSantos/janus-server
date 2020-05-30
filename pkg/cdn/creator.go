@@ -20,25 +20,34 @@ const cdnS3OriginSuffix = ".s3.us-east-1.amazonaws.com"
 func (c *CDN) Create(ctx context.Context, param *jam.CreationParam, out *jam.OutputParam) (string, error) {
 	fmt.Println("STARTING: creating bucket ID:", param.Bucket.ID)
 	bucketID := param.Bucket.ID
+	subdomain := param.CDN.Subdomain
 
 	accessID, err := c.createOrginAccess(bucketID)
 	if err != nil {
 		return "", err
 	}
 
-	config := c.constructStandardDistroConfig(bucketID, *accessID, param.ID)
+	distroConfigInput := &constructDistroConfigInput{
+		bucketID:       bucketID,
+		originAccessID: *accessID,
+		stackID:        param.ID,
+		subdomain:      subdomain,
+	}
+
+	config := c.constructStandardDistroConfig(distroConfigInput)
 	createDistroOuput, err := c.cdn.CreateDistribution(config)
 	if err != nil {
-		fmt.Println(err)
+		log.Println("could not create Cloudfront distro", err)
 	}
 
 	out.CDN = &jam.StackCDN{
-		Domain:   *createDistroOuput.Distribution.DomainName,
-		ID:       *createDistroOuput.Distribution.Id,
-		AccessID: *accessID,
+		Subdomain: subdomain,
+		AccessID:  *accessID,
+		Domain:    *createDistroOuput.Distribution.DomainName,
+		ID:        *createDistroOuput.Distribution.Id,
 	}
 
-	c.createDNSRecord(*createDistroOuput.Distribution.DomainName, param.ID)
+	c.createDNSRecord(*createDistroOuput.Distribution.DomainName, subdomain)
 
 	log.Println("DONE: creating up CDN ID:", out.CDN.ID)
 	return "", nil
@@ -48,11 +57,11 @@ func (c *CDN) Create(ctx context.Context, param *jam.CreationParam, out *jam.Out
 func (c *CDN) Destroy(ctx context.Context, param *jam.DeletionParam) error {
 	log.Println("START: destroying CDN")
 
-	in := &cloudfront.GetDistributionInput{
+	getDistroInput := &cloudfront.GetDistributionInput{
 		Id: aws.String(param.CDN.ID),
 	}
 
-	output, err := c.cdn.GetDistribution(in)
+	output, err := c.cdn.GetDistribution(getDistroInput)
 	if err != nil {
 		return err
 	}
@@ -61,9 +70,9 @@ func (c *CDN) Destroy(ctx context.Context, param *jam.DeletionParam) error {
 	conf.Enabled = aws.Bool(false)
 
 	input := &cloudfront.UpdateDistributionInput{
-		Id:                 output.Distribution.Id,
 		DistributionConfig: &conf,
 		IfMatch:            output.ETag,
+		Id:                 output.Distribution.Id,
 	}
 
 	res, err := c.cdn.UpdateDistribution(input)
@@ -76,17 +85,17 @@ func (c *CDN) Destroy(ctx context.Context, param *jam.DeletionParam) error {
 	c.queue.DestroyCDN.Push(
 		queue.QueueMessage{
 			queue.MessageAccessDistroID: &sqs.MessageAttributeValue{
-				DataType:    aws.String("String"),
 				StringValue: output.Distribution.Id,
+				DataType:    aws.String("String"),
 			},
 			queue.MessageAccessEtag: &sqs.MessageAttributeValue{
-				DataType:    aws.String("String"),
 				StringValue: res.ETag,
+				DataType:    aws.String("String"),
 			},
 		},
 	)
 
-	c.destroyDNSRecord(param.CDN.Domain, param.ID)
+	c.destroyDNSRecord(param.CDN.Domain, param.CDN.Subdomain)
 
 	log.Println("DONE: destroying CDN ID:", param.CDN.ID)
 	return nil

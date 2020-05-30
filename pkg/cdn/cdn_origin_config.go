@@ -7,6 +7,13 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudfront"
 )
 
+type constructDistroConfigInput struct {
+	originAccessID string
+	subdomain      string
+	bucketID       string
+	stackID        string
+}
+
 const (
 	originAccessIDPrefix      = "origin-access-identity/cloudfront/"
 	defaultRootObject         = "index.html"
@@ -18,17 +25,17 @@ const (
 	errorResponseCode         = "200"
 )
 
-func (c *CDN) constructStandardDistroConfig(bucketID string, originAccessID string, stackID string) *cloudfront.CreateDistributionInput {
+func (c *CDN) constructStandardDistroConfig(input *constructDistroConfigInput) *cloudfront.CreateDistributionInput {
 	config := &cloudfront.CreateDistributionInput{
 		DistributionConfig: &cloudfront.DistributionConfig{
 			DefaultRootObject:    aws.String(defaultRootObject),
-			CallerReference:      aws.String(bucketID),
-			Comment:              aws.String(bucketID),
+			CallerReference:      aws.String(input.bucketID),
+			Comment:              aws.String(input.bucketID),
 			Enabled:              aws.Bool(true),
-			Aliases:              constructAliases(stackID),
-			Origins:              constructS3Origins(bucketID, originAccessID),
+			Aliases:              constructAliases(input.subdomain),
+			Origins:              constructS3Origins(input.bucketID, input.originAccessID),
 			ViewerCertificate:    constructCertificate(),
-			DefaultCacheBehavior: constructDefaultCacheBehavior(bucketID),
+			DefaultCacheBehavior: constructDefaultCacheBehavior(input.bucketID),
 			CustomErrorResponses: constructErrorBehavior(),
 		},
 	}

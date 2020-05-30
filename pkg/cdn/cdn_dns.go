@@ -2,6 +2,7 @@ package cdn
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -14,15 +15,16 @@ const (
 	greenDeploymentPrefix = "green-"
 )
 
-func (c *CDN) createDNSRecord(distroDomain string, stackID string) {
-	c.handleCommonRoute53Change(dnsActionUpsert, stackID, distroDomain)
+func (c *CDN) createDNSRecord(distroDomain string, subdomain string) {
+	c.handleCommonRoute53Change(dnsActionUpsert, subdomain, distroDomain)
 }
 
-func (c *CDN) destroyDNSRecord(distroDomain string, stackID string) {
-	c.handleCommonRoute53Change(dnsActionDelete, stackID, distroDomain)
+func (c *CDN) destroyDNSRecord(distroDomain string, subdomain string) {
+	c.handleCommonRoute53Change(dnsActionDelete, subdomain, distroDomain)
 }
 
 func (c *CDN) handleCommonRoute53Change(action string, subdomain string, target string) {
+	log.Println("SUBDOMAIN IN DNS", subdomain)
 	recordParams := &route53.ChangeResourceRecordSetsInput{
 		ChangeBatch: &route53.ChangeBatch{
 			Changes: []*route53.Change{

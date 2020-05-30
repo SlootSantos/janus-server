@@ -19,9 +19,10 @@ type StackModel struct {
 
 // StackCDNModel contains all stack relevant information about the CDN
 type StackCDNModel struct {
-	ID       string `json:"id"`
-	Domain   string `json:"domain"`
-	AccessID string `json:"accessId"`
+	ID        string `json:"id"`
+	Domain    string `json:"domain"`
+	AccessID  string `json:"accessId"`
+	Subdomain string `json:"subdomain"`
 }
 
 type stack struct {

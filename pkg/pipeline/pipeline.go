@@ -10,7 +10,6 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/go-connections/nat"
@@ -116,13 +115,6 @@ func createRunnableContainer(cli *client.Client, params ContainerRunParams) cont
 			Env:   createContainerEnv(params),
 		},
 		&container.HostConfig{
-			Mounts: []mount.Mount{
-				{
-					Type:   mount.TypeBind,
-					Source: "/Users/floriansloot/go/src/github.com/SlootSantos/janus-server/docker_dir",
-					Target: "/home/pipeline/app/docker_dir",
-				},
-			},
 			Resources: container.Resources{
 				PidsLimit: 150,
 			},

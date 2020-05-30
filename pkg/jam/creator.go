@@ -2,12 +2,12 @@ package jam
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
-	"strconv"
 	"sync"
-	"time"
 
 	"github.com/SlootSantos/janus-server/pkg/api/auth"
 	"github.com/SlootSantos/janus-server/pkg/storage"
@@ -17,15 +17,24 @@ const bucketPrefix = "janus-bucket-"
 
 // builds entire JAM-Stack
 // including a Bucket, a CDN and a Githook
-func (j *Creator) build(ctx context.Context, repository string) ([]byte, error) {
-	stackID := strconv.FormatInt(time.Now().UnixNano(), 10)
+func (j *Creator) build(ctx context.Context, config stackConfig) ([]byte, error) {
+	stackID := generateRandomID()
+	subdomain := config.CustomSubDomain
+
+	if subdomain == "" {
+		subdomain = stackID
+	}
+
 	creationParam := &CreationParam{
 		ID: stackID,
+		CDN: StackCDN{
+			Subdomain: subdomain,
+		},
 		Bucket: struct{ ID string }{
 			ID: bucketPrefix + stackID,
 		},
 		Repo: struct{ Name string }{
-			Name: repository,
+			Name: config.Repository,
 		},
 	}
 
@@ -170,7 +179,6 @@ func removeStack(stack *Stack, user string) (updatedList []byte, err error) {
 }
 
 func getAllStacks(user string) []Stack {
-	log.Println("trying to get")
 	stackList, _ := storage.Store.Stack.Get(user)
 
 	return stackList
@@ -189,4 +197,11 @@ func getStackByID(stackID string, user string) Stack {
 	}
 
 	return stack
+}
+
+func generateRandomID() string {
+	random := make([]byte, 16)
+	rand.Read(random)
+
+	return fmt.Sprintf("%x", random)
 }
