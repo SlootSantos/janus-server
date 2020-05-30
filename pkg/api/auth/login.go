@@ -47,7 +47,6 @@ func HandleLogin(w http.ResponseWriter, req *http.Request) {
 
 // HandleCallback handles teh github authentication callback
 func HandleCallback(w http.ResponseWriter, req *http.Request) {
-	origin := req.Header.Get("origin")
 	state := req.FormValue("state")
 
 	if state != OauthStateString() {
@@ -61,7 +60,7 @@ func HandleCallback(w http.ResponseWriter, req *http.Request) {
 	storeUser(user, tokenStr)
 	setCookie(w, user)
 
-	http.Redirect(w, req, origin+"/admin/dashboard", http.StatusTemporaryRedirect)
+	http.Redirect(w, req, "https://app.stackers.io/admin/dashboard", http.StatusTemporaryRedirect)
 }
 
 func getToken(code string) (string, error) {
