@@ -13,7 +13,7 @@ import (
 )
 
 func TestCDN_Create(t *testing.T) {
-	t.Run("should create bucket", func(t *testing.T) {
+	t.Run("should create cdn", func(t *testing.T) {
 		os.Setenv("DOMAIN_HOST", "test")
 		ctrl := gomock.NewController(t)
 		cdnMock := NewMockcdnandler(ctrl)
@@ -29,11 +29,17 @@ func TestCDN_Create(t *testing.T) {
 
 		output := &jam.OutputParam{}
 		input := &jam.CreationParam{
+			CDN:    jam.StackCDN{Subdomain: "subdomain"},
 			ID:     "ID_12345",
 			Bucket: struct{ ID string }{"ID_12345"},
 		}
 
-		expectedCallParam := c.constructStandardDistroConfig("ID_12345", "ABCDEFG", "ID_12345")
+		expectedCallParam := c.constructStandardDistroConfig(&constructDistroConfigInput{
+			bucketID:       "ID_12345",
+			subdomain:      "subdomain",
+			stackID:        "ID_12345",
+			originAccessID: "ABCDEFG",
+		})
 		returnCreateOrigin := &cloudfront.CreateCloudFrontOriginAccessIdentityOutput{
 			CloudFrontOriginAccessIdentity: &cloudfront.OriginAccessIdentity{
 				Id: aws.String("ABCDEFG"),
@@ -73,11 +79,17 @@ func TestCDN_Create(t *testing.T) {
 
 		output := &jam.OutputParam{}
 		input := &jam.CreationParam{
+			CDN:    jam.StackCDN{Subdomain: "subdomain"},
 			ID:     "ID_12345",
 			Bucket: struct{ ID string }{"ID_12345"},
 		}
 
-		expectedCallParam := c.constructStandardDistroConfig("ID_12345", "ABCDEFG", "ID_12345")
+		expectedCallParam := c.constructStandardDistroConfig(&constructDistroConfigInput{
+			bucketID:       "ID_12345",
+			subdomain:      "subdomain",
+			stackID:        "ID_12345",
+			originAccessID: "ABCDEFG",
+		})
 		returnCreateOrigin := &cloudfront.CreateCloudFrontOriginAccessIdentityOutput{
 			CloudFrontOriginAccessIdentity: &cloudfront.OriginAccessIdentity{
 				Id: aws.String("ABCDEFG"),
