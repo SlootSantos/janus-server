@@ -1,5 +1,3 @@
-// node test.js https://1590251885033375000.stackers.io
-// node test.js https://1590251885033375000.stackers.io | jq -R 'fromjson?'
 const puppeteer = require("puppeteer");
 const https = require("https");
 
