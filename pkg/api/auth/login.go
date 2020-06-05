@@ -60,7 +60,7 @@ func HandleCallback(w http.ResponseWriter, req *http.Request) {
 	storeUser(user, tokenStr)
 	setCookie(w, user)
 
-	http.Redirect(w, req, "https://app.stackers.io/admin/dashboard", http.StatusTemporaryRedirect)
+	http.Redirect(w, req, "http://localhost:3000/admin/dashboard", http.StatusTemporaryRedirect)
 }
 
 func getToken(code string) (string, error) {

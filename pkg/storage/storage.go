@@ -2,6 +2,9 @@ package storage
 
 import "github.com/aws/aws-sdk-go/aws/session"
 
+type BuildModel struct {
+	Latest string `json:"latest"`
+}
 type Storage struct {
 	Stack *stack
 	User  *user

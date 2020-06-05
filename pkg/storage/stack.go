@@ -15,6 +15,7 @@ type StackModel struct {
 	BucketID string `json:"bucketId"`
 	CDN      *StackCDNModel
 	Repo     *RepoModel
+	Build    *BuildModel
 }
 
 // StackCDNModel contains all stack relevant information about the CDN

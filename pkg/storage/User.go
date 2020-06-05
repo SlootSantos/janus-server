@@ -10,8 +10,14 @@ import (
 )
 
 type UserModel struct {
-	User  string `json:"user"`
-	Token string `json:"token"`
+	User    string `json:"user"`
+	Token   string `json:"token"`
+	IsPro   bool   `json:"isPro"`
+	Billing *UserBillding
+}
+
+type UserBillding struct {
+	SubscriptionID string `json:"subscriptionId"`
 }
 
 type user struct {

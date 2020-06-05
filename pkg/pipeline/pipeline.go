@@ -11,7 +11,6 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
-	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/go-connections/nat"
 )
 
@@ -24,6 +23,7 @@ type ContainerRunParams struct {
 	User      string
 	CDN       string
 	Token     string
+	buildID   string
 }
 
 const (
@@ -57,13 +57,13 @@ func BuildRepoSources(params ContainerRunParams) {
 
 	cont := createRunnableContainer(cli, params)
 
-	err = executeContainer(cli, cont)
+	err = executeContainer(cli, params.buildID, cont)
 	if err != nil {
 		fmt.Println(err)
 	}
 }
 
-func executeContainer(cli *client.Client, cont container.ContainerCreateCreatedBody) error {
+func executeContainer(cli *client.Client, buildID string, cont container.ContainerCreateCreatedBody) error {
 	log.Println("START: executing Docker container")
 
 	err := cli.ContainerStart(context.Background(), cont.ID, types.ContainerStartOptions{})
@@ -71,18 +71,19 @@ func executeContainer(cli *client.Client, cont container.ContainerCreateCreatedB
 		return err
 	}
 
-	streamDockerLogs(cli, cont.ID)
+	streamChan, _ := CreateBuild(buildID)
+	streamDockerLogs(cli, cont.ID, buildID, streamChan)
 
 	log.Println("DONE: executing Docker container")
 	return err
 }
 
-func streamDockerLogs(cli *client.Client, containerID string) error {
+func streamDockerLogs(cli *client.Client, containerID string, buildID string, streamChan chan<- string) error {
+	go StreamLogs(buildID)
+
 	logConfig := types.ContainerLogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
-		Timestamps: true,
-		Details:    true,
 		Follow:     true,
 	}
 
@@ -92,7 +93,22 @@ func streamDockerLogs(cli *client.Client, containerID string) error {
 		return err
 	}
 
-	stdcopy.StdCopy(os.Stdout, os.Stderr, out)
+	defer close(streamChan)
+	for {
+		buf := make([]byte, 32*1024+9)
+
+		_, err := out.Read(buf)
+		if err != nil {
+			if err == io.EOF {
+				streamChan <- StreamingCloseMessage
+				break
+			}
+
+			return err
+		}
+
+		streamChan <- fmt.Sprintf("%s", buf)
+	}
 
 	_, err = cli.ContainerWait(context.Background(), containerID)
 	return err
@@ -113,6 +129,7 @@ func createRunnableContainer(cli *client.Client, params ContainerRunParams) cont
 		&container.Config{
 			Image: buildImageName,
 			Env:   createContainerEnv(params),
+			Tty:   true,
 		},
 		&container.HostConfig{
 			Resources: container.Resources{

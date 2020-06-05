@@ -1,8 +1,10 @@
 package pipeline
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -13,14 +15,6 @@ import (
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
 )
-
-type repository struct {
-	Fullname string `json:"full_name"`
-}
-
-type webhook struct {
-	Repository repository
-}
 
 // Hook is the git hook route identifier
 const Hook = "/hook"
@@ -50,6 +44,12 @@ func HandleHook(w http.ResponseWriter, req *http.Request) {
 				return
 			}
 
+			buildID := generateRandomID()
+			stack.Build = &storage.BuildModel{
+				Latest: buildID,
+			}
+			go updateStacks(*e.Repo.Owner.Name, stack)
+
 			BuildRepoSources(ContainerRunParams{
 				AWSAccess: os.Getenv("PIPELINE_DEPLOYER_ACCESS"),
 				AWSSecret: os.Getenv("PIPELINE_DEPLOYER_SECRET"),
@@ -58,6 +58,7 @@ func HandleHook(w http.ResponseWriter, req *http.Request) {
 				CDN:       stack.CDN.ID,
 				User:      *e.Repo.Owner.Name,
 				Token:     GetUserToken(*e.Repo.Owner.Name),
+				buildID:   buildID,
 			})
 
 		default:
@@ -83,6 +84,25 @@ func getStackByRepo(repoName string, user string) (*jam.Stack, error) {
 	return nil, errors.New("can not find stack for repo" + repoName)
 }
 
+func updateStacks(user string, newStack *storage.StackModel) error {
+	jamList, _ := storage.Store.Stack.Get(user)
+
+	for idx, jam := range jamList {
+		log.Println("REPO:", jam.Repo.Name)
+		if jam.Repo.Name != newStack.Repo.Name {
+			continue
+		}
+
+		log.Println("found it!")
+		jamList[idx] = *newStack
+		break
+	}
+
+	storage.Store.Stack.Set(user, jamList)
+
+	return nil
+}
+
 func GetUserToken(user string) string {
 	u, _ := storage.Store.User.Get(user)
 
@@ -92,7 +112,12 @@ func GetUserToken(user string) string {
 		panic("Not working ")
 	}
 
-	log.Printf("TOKEN should be 8 <something>: %s", token.AccessToken)
 	return token.AccessToken
-	// return token.AccessToken, errors.New("can not find stack for repo" + repoName)
+}
+
+func generateRandomID() string {
+	random := make([]byte, 16)
+	rand.Read(random)
+
+	return fmt.Sprintf("%x", random)
 }

@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"log"
 	"net/http"
 
 	"github.com/SlootSantos/janus-server/pkg/storage"
@@ -46,6 +47,8 @@ func WithCredentials(next http.HandlerFunc) http.HandlerFunc {
 func createCtxWithToken(cookie *http.Cookie, req *http.Request) *http.Request {
 	authUser, _ := GetUserFromCookie(cookie)
 	userModel, _ := storage.Store.User.Get(authUser.Name)
+
+	log.Printf("%+v", userModel)
 
 	ctx := context.WithValue(req.Context(), ContextKeyToken, userModel.Token)
 	ctx = context.WithValue(ctx, ContextKeyUserName, authUser.Name)
