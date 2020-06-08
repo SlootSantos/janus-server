@@ -5,6 +5,7 @@
 package cdn
 
 import (
+	acm "github.com/aws/aws-sdk-go/service/acm"
 	cloudfront "github.com/aws/aws-sdk-go/service/cloudfront"
 	route53 "github.com/aws/aws-sdk-go/service/route53"
 	gomock "github.com/golang/mock/gomock"
@@ -160,4 +161,72 @@ func (m *Mockdnshandler) ChangeResourceRecordSets(arg0 *route53.ChangeResourceRe
 func (mr *MockdnshandlerMockRecorder) ChangeResourceRecordSets(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChangeResourceRecordSets", reflect.TypeOf((*Mockdnshandler)(nil).ChangeResourceRecordSets), arg0)
+}
+
+// MockcertificateHandler is a mock of certificateHandler interface
+type MockcertificateHandler struct {
+	ctrl     *gomock.Controller
+	recorder *MockcertificateHandlerMockRecorder
+}
+
+// MockcertificateHandlerMockRecorder is the mock recorder for MockcertificateHandler
+type MockcertificateHandlerMockRecorder struct {
+	mock *MockcertificateHandler
+}
+
+// NewMockcertificateHandler creates a new mock instance
+func NewMockcertificateHandler(ctrl *gomock.Controller) *MockcertificateHandler {
+	mock := &MockcertificateHandler{ctrl: ctrl}
+	mock.recorder = &MockcertificateHandlerMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use
+func (m *MockcertificateHandler) EXPECT() *MockcertificateHandlerMockRecorder {
+	return m.recorder
+}
+
+// RequestCertificate mocks base method
+func (m *MockcertificateHandler) RequestCertificate(arg0 *acm.RequestCertificateInput) (*acm.RequestCertificateOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RequestCertificate", arg0)
+	ret0, _ := ret[0].(*acm.RequestCertificateOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RequestCertificate indicates an expected call of RequestCertificate
+func (mr *MockcertificateHandlerMockRecorder) RequestCertificate(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RequestCertificate", reflect.TypeOf((*MockcertificateHandler)(nil).RequestCertificate), arg0)
+}
+
+// GetCertificate mocks base method
+func (m *MockcertificateHandler) GetCertificate(arg0 *acm.GetCertificateInput) (*acm.GetCertificateOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCertificate", arg0)
+	ret0, _ := ret[0].(*acm.GetCertificateOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCertificate indicates an expected call of GetCertificate
+func (mr *MockcertificateHandlerMockRecorder) GetCertificate(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCertificate", reflect.TypeOf((*MockcertificateHandler)(nil).GetCertificate), arg0)
+}
+
+// DescribeCertificate mocks base method
+func (m *MockcertificateHandler) DescribeCertificate(arg0 *acm.DescribeCertificateInput) (*acm.DescribeCertificateOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeCertificate", arg0)
+	ret0, _ := ret[0].(*acm.DescribeCertificateOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeCertificate indicates an expected call of DescribeCertificate
+func (mr *MockcertificateHandlerMockRecorder) DescribeCertificate(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeCertificate", reflect.TypeOf((*MockcertificateHandler)(nil).DescribeCertificate), arg0)
 }

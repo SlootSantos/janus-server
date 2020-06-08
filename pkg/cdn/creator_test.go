@@ -8,6 +8,7 @@ import (
 	"github.com/SlootSantos/janus-server/pkg/jam"
 	"github.com/SlootSantos/janus-server/pkg/queue"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/acm"
 	"github.com/aws/aws-sdk-go/service/cloudfront"
 	gomock "github.com/golang/mock/gomock"
 )
@@ -18,12 +19,14 @@ func TestCDN_Create(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		cdnMock := NewMockcdnandler(ctrl)
 		dnsMock := NewMockdnshandler(ctrl)
+		acmMock := NewMockcertificateHandler(ctrl)
 		sqsMock := queue.NewMockqueueHandler(ctrl)
 		qMock := queue.NewMockQ(sqsMock)
 
 		c := CDN{
 			cdn:   cdnMock,
 			dns:   dnsMock,
+			acm:   acmMock,
 			queue: &qMock,
 		}
 
@@ -52,10 +55,38 @@ func TestCDN_Create(t *testing.T) {
 			},
 		}
 
+		expectedCertificateParam := &acm.RequestCertificateInput{
+			DomainName:       aws.String("subdomain.test"),
+			ValidationMethod: aws.String("DNS"),
+			SubjectAlternativeNames: []*string{
+				aws.String("*." + "subdomain.test"),
+				aws.String("*.pr." + "subdomain.test"),
+			},
+		}
+		returnCertificateParam := &acm.RequestCertificateOutput{
+			CertificateArn: aws.String("arn:12345"),
+		}
+		returnCertifcateDescribeParam := &acm.DescribeCertificateOutput{
+			Certificate: &acm.CertificateDetail{
+				DomainValidationOptions: []*acm.DomainValidation{
+					&acm.DomainValidation{
+						ResourceRecord: &acm.ResourceRecord{
+							Name:  aws.String("_name.aws.cert.com"),
+							Type:  aws.String("CNAME"),
+							Value: aws.String("_value.aws.cert.com"),
+						},
+					},
+				},
+			},
+		}
+
 		cdnMock.EXPECT().CreateCloudFrontOriginAccessIdentity(gomock.Any()).Times(1).Return(returnCreateOrigin, nil)
 		cdnMock.EXPECT().CreateDistribution(expectedCallParam).Times(1).Return(returnCreateDistro, nil)
 		dnsMock.EXPECT().ChangeResourceRecordSets(gomock.Any()).Times(1)
-		sqsMock.EXPECT().SendMessage(gomock.Any()).Times(1)
+		acmMock.EXPECT().RequestCertificate(expectedCertificateParam).Times(1).Return(returnCertificateParam, nil)
+		acmMock.EXPECT().DescribeCertificate(gomock.Any()).Return(returnCertifcateDescribeParam, nil)
+		dnsMock.EXPECT().ChangeResourceRecordSets(gomock.Any()).Times(1)
+		sqsMock.EXPECT().SendMessage(gomock.Any()).Times(2)
 
 		_, err := c.Create(context.Background(), input, output)
 		if err != nil {
@@ -68,12 +99,14 @@ func TestCDN_Create(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		cdnMock := NewMockcdnandler(ctrl)
 		dnsMock := NewMockdnshandler(ctrl)
+		acmMock := NewMockcertificateHandler(ctrl)
 		sqsMock := queue.NewMockqueueHandler(ctrl)
 		qMock := queue.NewMockQ(sqsMock)
 
 		c := CDN{
 			cdn:   cdnMock,
 			dns:   dnsMock,
+			acm:   acmMock,
 			queue: &qMock,
 		}
 
@@ -101,11 +134,39 @@ func TestCDN_Create(t *testing.T) {
 				Id:         aws.String("6778ghj"),
 			},
 		}
+		os.Setenv("DOMAIN_HOST", "test.com")
+		expectedCertificateParam := &acm.RequestCertificateInput{
+			DomainName:       aws.String("subdomain.test.com"),
+			ValidationMethod: aws.String("DNS"),
+			SubjectAlternativeNames: []*string{
+				aws.String("*." + "subdomain.test.com"),
+				aws.String("*.pr." + "subdomain.test.com"),
+			},
+		}
+		returnCertificateParam := &acm.RequestCertificateOutput{
+			CertificateArn: aws.String("arn:12345"),
+		}
+		returnCertifcateDescribeParam := &acm.DescribeCertificateOutput{
+			Certificate: &acm.CertificateDetail{
+				DomainValidationOptions: []*acm.DomainValidation{
+					&acm.DomainValidation{
+						ResourceRecord: &acm.ResourceRecord{
+							Name:  aws.String("_name.aws.cert.com"),
+							Type:  aws.String("CNAME"),
+							Value: aws.String("_value.aws.cert.com"),
+						},
+					},
+				},
+			},
+		}
 
 		cdnMock.EXPECT().CreateCloudFrontOriginAccessIdentity(gomock.Any()).Times(1).Return(returnCreateOrigin, nil)
 		cdnMock.EXPECT().CreateDistribution(expectedCallParam).Times(1).Return(returnCreateDistro, nil)
 		dnsMock.EXPECT().ChangeResourceRecordSets(gomock.Any()).Times(1)
-		sqsMock.EXPECT().SendMessage(gomock.Any()).Times(1)
+		acmMock.EXPECT().RequestCertificate(expectedCertificateParam).Times(1).Return(returnCertificateParam, nil)
+		acmMock.EXPECT().DescribeCertificate(gomock.Any()).Return(returnCertifcateDescribeParam, nil)
+		dnsMock.EXPECT().ChangeResourceRecordSets(gomock.Any()).Times(1)
+		sqsMock.EXPECT().SendMessage(gomock.Any()).Times(2)
 
 		c.Create(context.Background(), input, output)
 		if output.CDN.ID != "6778ghj" {
@@ -120,12 +181,14 @@ func TestCDN_Delete(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		cdnMock := NewMockcdnandler(ctrl)
 		dnsMock := NewMockdnshandler(ctrl)
+		acmMock := NewMockcertificateHandler(ctrl)
 		sqsMock := queue.NewMockqueueHandler(ctrl)
 		qMock := queue.NewMockQ(sqsMock)
 
 		c := CDN{
 			cdn:   cdnMock,
 			dns:   dnsMock,
+			acm:   acmMock,
 			queue: &qMock,
 		}
 

@@ -30,13 +30,15 @@ type Queue struct {
 }
 
 type Q struct {
-	AccessID   Queue
-	DestroyCDN Queue
+	AccessID    Queue
+	DestroyCDN  Queue
+	Certificate Queue
 }
 
 func New(sess *session.Session) Q {
 	s := sqs.New(sess)
 
+	urlCertificate := os.Getenv("SQS_URL_CERTIFICATE")
 	urlDestroyCDN := os.Getenv("SQS_URL_DESTROY_CDN")
 	urlAccessID := os.Getenv("SQS_URL_ACCESS_ID")
 
@@ -51,6 +53,12 @@ func New(sess *session.Session) Q {
 			name:              "DestroyCDNQueue",
 			visibilityTimeout: 300,
 			url:               urlDestroyCDN,
+			sqs:               s,
+		},
+		Certificate: Queue{
+			name:              "DestroyCDNQueue",
+			visibilityTimeout: 60,
+			url:               urlCertificate,
 			sqs:               s,
 		},
 	}
@@ -146,6 +154,12 @@ func NewMockQ(sqsMock *MockqueueHandler) Q {
 		DestroyCDN: Queue{
 			name:              "DestroyCDNQueue",
 			visibilityTimeout: 300,
+			url:               "url",
+			sqs:               sqsMock,
+		},
+		Certificate: Queue{
+			name:              "Certificate",
+			visibilityTimeout: 60,
 			url:               "url",
 			sqs:               sqsMock,
 		},

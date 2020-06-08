@@ -10,9 +10,12 @@ import (
 )
 
 const (
-	dnsActionUpsert       = "UPSERT"
-	dnsActionDelete       = "DELETE"
-	greenDeploymentPrefix = "green-"
+	dnsActionUpsert            = "UPSERT"
+	dnsActionDelete            = "DELETE"
+	aliasPrefixGreenDeployment = "green."
+	aliasPrefixDevelopmentEnv  = "dev."
+	aliasPrefixStageEnv        = "stage."
+	aliasPrefixPRPreview       = "*.pr."
 )
 
 func (c *CDN) createDNSRecord(distroDomain string, subdomain string) {
@@ -46,7 +49,52 @@ func (c *CDN) handleCommonRoute53Change(action string, subdomain string, target 
 				{
 					Action: aws.String(action),
 					ResourceRecordSet: &route53.ResourceRecordSet{
-						Name: aws.String(greenDeploymentPrefix + subdomain + "." + os.Getenv("DOMAIN_HOST")),
+						Name: aws.String(aliasPrefixGreenDeployment + subdomain + "." + os.Getenv("DOMAIN_HOST")),
+						Type: aws.String("CNAME"),
+						ResourceRecords: []*route53.ResourceRecord{
+							{
+								Value: aws.String(target),
+							},
+						},
+						TTL:           aws.Int64(60),
+						Weight:        aws.Int64(1),
+						SetIdentifier: aws.String("Custom Domain CNAME for stackers CDN: " + target),
+					},
+				},
+				{
+					Action: aws.String(action),
+					ResourceRecordSet: &route53.ResourceRecordSet{
+						Name: aws.String(aliasPrefixDevelopmentEnv + subdomain + "." + os.Getenv("DOMAIN_HOST")),
+						Type: aws.String("CNAME"),
+						ResourceRecords: []*route53.ResourceRecord{
+							{
+								Value: aws.String(target),
+							},
+						},
+						TTL:           aws.Int64(60),
+						Weight:        aws.Int64(1),
+						SetIdentifier: aws.String("Custom Domain CNAME for stackers CDN: " + target),
+					},
+				},
+				{
+					Action: aws.String(action),
+					ResourceRecordSet: &route53.ResourceRecordSet{
+						Name: aws.String(aliasPrefixStageEnv + subdomain + "." + os.Getenv("DOMAIN_HOST")),
+						Type: aws.String("CNAME"),
+						ResourceRecords: []*route53.ResourceRecord{
+							{
+								Value: aws.String(target),
+							},
+						},
+						TTL:           aws.Int64(60),
+						Weight:        aws.Int64(1),
+						SetIdentifier: aws.String("Custom Domain CNAME for stackers CDN: " + target),
+					},
+				},
+				{
+					Action: aws.String(action),
+					ResourceRecordSet: &route53.ResourceRecordSet{
+						Name: aws.String(aliasPrefixPRPreview + subdomain + "." + os.Getenv("DOMAIN_HOST")),
 						Type: aws.String("CNAME"),
 						ResourceRecords: []*route53.ResourceRecord{
 							{

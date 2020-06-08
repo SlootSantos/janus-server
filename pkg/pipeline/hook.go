@@ -9,6 +9,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/SlootSantos/janus-server/pkg/jam"
 	"github.com/SlootSantos/janus-server/pkg/storage"
@@ -18,6 +20,7 @@ import (
 
 // Hook is the git hook route identifier
 const Hook = "/hook"
+const githubActionReleased = "released"
 
 // HandleHook handles incoming Github hooks
 func HandleHook(w http.ResponseWriter, req *http.Request) {
@@ -37,7 +40,74 @@ func HandleHook(w http.ResponseWriter, req *http.Request) {
 		}
 
 		switch e := event.(type) {
+		case *github.PullRequestEvent:
+			if *e.Action == "opened" || *e.Action == "synchronize" {
+				log.Println("GOING FOR PR", *e.Action)
+
+				stack, err := getStackByRepo(*e.Repo.Name, *e.Repo.Owner.Login)
+				if err != nil {
+					log.Println("Cannot build container for", *e.Repo.FullName, err.Error())
+					return
+				}
+
+				buildID := generateRandomID()
+				stack.Build = &storage.BuildModel{
+					Latest: buildID,
+				}
+
+				go updateStacks(*e.Repo.Owner.Login, stack)
+
+				BuildRepoSources(ContainerRunParams{
+					AWSAccess: os.Getenv("PIPELINE_DEPLOYER_ACCESS"),
+					AWSSecret: os.Getenv("PIPELINE_DEPLOYER_SECRET"),
+					Branch:    getBranchFromRef("pr"),
+					Bucket:    stack.BucketID,
+					Repo:      stack.Repo.Name,
+					Commit:    *e.PullRequest.Head.SHA,
+					CDN:       stack.CDN.ID,
+					User:      *e.Repo.Owner.Login,
+					Token:     GetUserToken(*e.Repo.Owner.Login),
+					buildID:   buildID,
+					PrID:      strconv.Itoa(*e.Number),
+				})
+			}
+
+		case *github.ReleaseEvent:
+			stack, err := getStackByRepo(*e.Repo.Name, *e.Repo.Owner.Login)
+			if err != nil {
+				log.Println("Cannot build container for", *e.Repo.FullName, err.Error())
+				return
+			}
+
+			buildID := generateRandomID()
+			stack.Build = &storage.BuildModel{
+				Latest: buildID,
+			}
+
+			go updateStacks(*e.Repo.Owner.Login, stack)
+
+			if *e.Action == githubActionReleased {
+				log.Println("shouldnt we do it?")
+
+				BuildRepoSources(ContainerRunParams{
+					AWSAccess: os.Getenv("PIPELINE_DEPLOYER_ACCESS"),
+					AWSSecret: os.Getenv("PIPELINE_DEPLOYER_SECRET"),
+					Branch:    getBranchFromRef(*e.Release.TargetCommitish) + ":tag",
+					Bucket:    stack.BucketID,
+					Repo:      stack.Repo.Name,
+					CDN:       stack.CDN.ID,
+					User:      *e.Repo.Owner.Login,
+					Token:     GetUserToken(*e.Repo.Owner.Login),
+					buildID:   buildID,
+				})
+			}
+
 		case *github.PushEvent:
+			if strings.Contains(*e.Ref, "tags") {
+				log.Println("Skipping because TAG")
+				return
+			}
+
 			stack, err := getStackByRepo(*e.Repo.Name, *e.Repo.Owner.Name)
 			if err != nil {
 				log.Println("Cannot build container for", *e.Repo.FullName, err.Error())
@@ -53,6 +123,8 @@ func HandleHook(w http.ResponseWriter, req *http.Request) {
 			BuildRepoSources(ContainerRunParams{
 				AWSAccess: os.Getenv("PIPELINE_DEPLOYER_ACCESS"),
 				AWSSecret: os.Getenv("PIPELINE_DEPLOYER_SECRET"),
+				Branch:    getBranchFromRef(*e.Ref),
+				Commit:    *e.After,
 				Bucket:    stack.BucketID,
 				Repo:      stack.Repo.Name,
 				CDN:       stack.CDN.ID,
@@ -120,4 +192,12 @@ func generateRandomID() string {
 	rand.Read(random)
 
 	return fmt.Sprintf("%x", random)
+}
+
+func getBranchFromRef(ref string) string {
+	refArr := strings.Split(ref, "/")
+	branchName := refArr[len(refArr)-1]
+
+	log.Println("BRANCH:", branchName)
+	return branchName
 }

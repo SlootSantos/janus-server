@@ -18,23 +18,29 @@ type ContainerRunParams struct {
 	AWSAccess string
 	AWSSecret string
 	Fullname  string
+	Branch    string
+	Commit    string
 	Bucket    string
 	Repo      string
 	User      string
 	CDN       string
 	Token     string
 	buildID   string
+	PrID      string
 }
 
 const (
 	awsAccess string = "AWS_ACCESS_KEY_ID"
 	awsSecret string = "AWS_SECRET_ACCESS_KEY"
 	repoFull  string = "REPO_FULL"
+	branch    string = "STACKERS_BRANCH"
+	commit    string = "STACKERS_COMMIT"
 	bucket    string = "BUCKET"
 	repo      string = "REPO"
 	user      string = "USER"
 	cdn       string = "CDN"
 	token     string = "OAUTH_TOKEN"
+	prId      string = "STACKERS_PR_ID"
 )
 
 const (
@@ -168,11 +174,14 @@ func createContainerEnv(params ContainerRunParams) []string {
 		joinEnv(awsAccess, params.AWSAccess),
 		joinEnv(awsSecret, params.AWSSecret),
 		joinEnv(bucket, params.Bucket),
+		joinEnv(branch, params.Branch),
+		joinEnv(commit, params.Commit),
 		joinEnv(repo, params.Repo),
 		joinEnv(user, params.User),
 		joinEnv(cdn, params.CDN),
 		joinEnv(repoFull, params.User+"/"+params.Repo),
 		joinEnv(token, params.Token),
+		joinEnv(prId, params.PrID),
 	}
 }
 

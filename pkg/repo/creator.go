@@ -45,6 +45,11 @@ func (r *Repo) Create(ctx context.Context, params *jam.CreationParam, out *jam.O
 		Name:   &hookName,
 		URL:    &hookURL,
 		Config: config,
+		Events: []string{
+			"push",
+			"pull_request",
+			"release",
+		},
 	}
 
 	hook, _, err := client.Repositories.CreateHook(ctx, *user.Login, repoName, gitHook)

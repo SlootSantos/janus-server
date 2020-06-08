@@ -40,14 +40,15 @@ func (c *CDN) Create(ctx context.Context, param *jam.CreationParam, out *jam.Out
 		log.Println("could not create Cloudfront distro", err)
 	}
 
+	c.createDNSRecord(*createDistroOuput.Distribution.DomainName, subdomain)
+	c.issueCertificate(subdomain, *createDistroOuput.Distribution.Id)
+
 	out.CDN = &jam.StackCDN{
 		Subdomain: subdomain,
 		AccessID:  *accessID,
 		Domain:    *createDistroOuput.Distribution.DomainName,
 		ID:        *createDistroOuput.Distribution.Id,
 	}
-
-	c.createDNSRecord(*createDistroOuput.Distribution.DomainName, subdomain)
 
 	log.Println("DONE: creating up CDN ID:", out.CDN.ID)
 	return "", nil

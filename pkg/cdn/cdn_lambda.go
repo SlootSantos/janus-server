@@ -6,7 +6,7 @@ import (
 )
 
 const lambdaEventOriginReq = "origin-request"
-const lambdaFuncARN = "arn:aws:lambda:us-east-1:976589619057:function:janus-exmaple-redirect:30" // => env?
+const lambdaFuncARN = "arn:aws:lambda:us-east-1:976589619057:function:janus-exmaple-redirect:34" // => env?
 
 func blueGreenLambdaFuncConfig() *cloudfront.LambdaFunctionAssociations {
 	return &cloudfront.LambdaFunctionAssociations{

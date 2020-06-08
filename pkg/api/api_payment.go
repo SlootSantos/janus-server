@@ -3,6 +3,8 @@
 package api
 
 import (
+	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -43,10 +45,19 @@ func setupPayment() bool {
 
 		storage.Store.User.Set(userName, user)
 
-		io.WriteString(w, "Done!"+s.Subscription.ID)
+		jsonUser, _ := json.Marshal(userName)
 
+		fmt.Printf("%s", jsonUser)
+
+		// io.WriteString(w, "Done!"+s.Subscription.ID)
+		http.Redirect(w, req, os.Getenv("CLIENT_URL")+"/pro/success", http.StatusTemporaryRedirect)
 	}))
-	http.HandleFunc("/payment", func(w http.ResponseWriter, req *http.Request) {
+
+	http.HandleFunc("/payment", auth.WithCredentials(func(w http.ResponseWriter, req *http.Request) {
+		origin := req.Header.Get("Origin")
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+		w.Header().Set("Content-Type", "application/json")
 		stripe.Key = os.Getenv("STRIPE_KEY")
 		checkParams := &stripe.CheckoutSessionParams{
 			PaymentMethodTypes: stripe.StringSlice([]string{
@@ -54,14 +65,14 @@ func setupPayment() bool {
 			}),
 			// Customer: &customer.ID,
 			LineItems: []*stripe.CheckoutSessionLineItemParams{
-				&stripe.CheckoutSessionLineItemParams{
+				{
 					Price:    stripe.String("price_1GptsEK2tzGfLmpdXZGBLXjD"),
 					Quantity: stripe.Int64(1),
 				},
 			},
 			Mode:       stripe.String("subscription"),
-			SuccessURL: stripe.String("http://localhost:8888/payment/success?sessId={CHECKOUT_SESSION_ID}"),
-			CancelURL:  stripe.String("https://example.com/cancel"),
+			SuccessURL: stripe.String(os.Getenv("SERVER_URL") + "/payment/success?sessId={CHECKOUT_SESSION_ID}"),
+			CancelURL:  stripe.String(os.Getenv("CLIENT_URL") + "/pro"),
 		}
 
 		session, err := session.New(checkParams)
@@ -69,7 +80,15 @@ func setupPayment() bool {
 			w.Write([]byte(err.Error()))
 		}
 
-		w.Write([]byte(session.ID))
-	})
+		jsonResp := struct {
+			Session string `json:"session"`
+		}{
+			Session: session.ID,
+		}
+
+		res, _ := json.Marshal(jsonResp)
+
+		w.Write(res)
+	}))
 	return false
 }

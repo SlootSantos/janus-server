@@ -10,6 +10,7 @@ import (
 type constructDistroConfigInput struct {
 	originAccessID string
 	subdomain      string
+	certificateARN string
 	bucketID       string
 	stackID        string
 }
@@ -28,13 +29,13 @@ const (
 func (c *CDN) constructStandardDistroConfig(input *constructDistroConfigInput) *cloudfront.CreateDistributionInput {
 	config := &cloudfront.CreateDistributionInput{
 		DistributionConfig: &cloudfront.DistributionConfig{
-			DefaultRootObject:    aws.String(defaultRootObject),
-			CallerReference:      aws.String(input.bucketID),
-			Comment:              aws.String(input.bucketID),
-			Enabled:              aws.Bool(true),
-			Aliases:              constructAliases(input.subdomain),
-			Origins:              constructS3Origins(input.bucketID, input.originAccessID),
-			ViewerCertificate:    constructCertificate(),
+			DefaultRootObject: aws.String(defaultRootObject),
+			CallerReference:   aws.String(input.bucketID),
+			Comment:           aws.String(input.bucketID),
+			Enabled:           aws.Bool(true),
+			// Aliases:           constructAliases(input.subdomain),
+			Origins: constructS3Origins(input.bucketID, input.originAccessID),
+			// ViewerCertificate:    constructCertificate(input.certificateARN),
 			DefaultCacheBehavior: constructDefaultCacheBehavior(input.bucketID),
 			CustomErrorResponses: constructErrorBehavior(),
 		},
@@ -43,10 +44,10 @@ func (c *CDN) constructStandardDistroConfig(input *constructDistroConfigInput) *
 	return config
 }
 
-func constructCertificate() *cloudfront.ViewerCertificate {
+func constructCertificate(certARN string) *cloudfront.ViewerCertificate {
 	return &cloudfront.ViewerCertificate{
 		SSLSupportMethod:       aws.String(certificateSSLMethods),
-		ACMCertificateArn:      aws.String(os.Getenv("DOMAIN_CERT_ARN")),
+		ACMCertificateArn:      aws.String(certARN),
 		MinimumProtocolVersion: aws.String(certifcateProtocolVersion),
 	}
 }
@@ -68,10 +69,13 @@ func constructAliases(subdomain string) *cloudfront.Aliases {
 	alias := subdomain + "." + os.Getenv("DOMAIN_HOST")
 
 	return &cloudfront.Aliases{
-		Quantity: aws.Int64(2),
+		Quantity: aws.Int64(5),
 		Items: []*string{
 			aws.String(alias),
-			aws.String(greenDeploymentPrefix + alias),
+			aws.String(aliasPrefixGreenDeployment + alias),
+			aws.String(aliasPrefixDevelopmentEnv + alias),
+			aws.String(aliasPrefixStageEnv + alias),
+			aws.String(aliasPrefixPRPreview + alias),
 		},
 	}
 }

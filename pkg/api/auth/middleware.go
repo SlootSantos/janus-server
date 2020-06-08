@@ -48,7 +48,7 @@ func createCtxWithToken(cookie *http.Cookie, req *http.Request) *http.Request {
 	authUser, _ := GetUserFromCookie(cookie)
 	userModel, _ := storage.Store.User.Get(authUser.Name)
 
-	log.Printf("%+v", userModel)
+	log.Printf("%+v", userModel.Billing)
 
 	ctx := context.WithValue(req.Context(), ContextKeyToken, userModel.Token)
 	ctx = context.WithValue(ctx, ContextKeyUserName, authUser.Name)
