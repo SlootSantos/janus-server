@@ -50,28 +50,47 @@ resource "aws_elastic_beanstalk_environment" "janus-server-production" {
     value     = "t2.micro"
   }
 
-    setting {
-      namespace = "aws:elb:listener:443"
-      name      = "ListenerProtocol"
-      value     = "HTTPS"
-    }
+  setting {
+    namespace = "aws:elb:listener:443"
+    name      = "ListenerProtocol"
+    value     = "HTTPS"
+  }
 
-    setting {
-      namespace = "aws:elb:listener:443"
-      name      = "InstancePort"
-      value     = "80"
-    }
+  setting {
+    namespace = "aws:elb:listener:443"
+    name      = "InstancePort"
+    value     = "80"
+  }
 
-    setting {
-      namespace = "aws:elb:listener:443"
-      name      = "SSLCertificateId"
-      value     = data.aws_acm_certificate.janus_dns_cert_euc_wild.arn
-    }
+  setting {
+    namespace = "aws:elb:listener:443"
+    name      = "SSLCertificateId"
+    value     = data.aws_acm_certificate.janus_dns_cert_euc_wild.arn
+  }
 
   setting {
     namespace = "aws:autoscaling:launchconfiguration"
     name      = "SecurityGroups"
     value     = aws_security_group.janus_public_sg.id
   }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:cloudwatch:logs"
+    name      = "StreamLogs"
+    value     = true
+  }
+  
+  setting {
+    namespace = "aws:elasticbeanstalk:cloudwatch:logs"
+    name      = "RetentionInDays"
+    value     = "7"
+  }
+  
+  setting {
+    namespace = "aws:elasticbeanstalk:cloudwatch:logs"
+    name      = "DeleteOnTerminate"
+    value     = false
+  }
+  
 }
 

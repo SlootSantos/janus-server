@@ -58,3 +58,12 @@ resource "aws_iam_role_policy_attachment" "beanstalk_role_policy_attach_BEANSTAL
   role       = aws_iam_role.janus_beanstalk_role.name
   policy_arn = data.aws_iam_policy.BEANSTALK_MULTI_DOCKER.arn
 }
+
+data "aws_iam_policy" "BEANSTALK_CLOUDWATCH" {
+  arn = "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
+}
+
+resource "aws_iam_role_policy_attachment" "beanstalk_role_policy_attach_BEANSTALK_CLOUDWATCH" {
+  role       = aws_iam_role.janus_beanstalk_role.name
+  policy_arn = data.aws_iam_policy.BEANSTALK_CLOUDWATCH.arn
+}
