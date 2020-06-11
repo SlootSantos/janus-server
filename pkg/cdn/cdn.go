@@ -33,25 +33,60 @@ type certificateHandler interface {
 
 // CDN contains all data to interact w/ AWS Cloudfront
 type CDN struct {
-	cdn   cdnandler
-	dns   dnshandler
-	queue *queue.Q
-	acm   certificateHandler
+	cdn    cdnandler
+	dns    dnshandler
+	queue  *queue.Q
+	acm    certificateHandler
+	config *cdnConfig
+}
+
+type CreateCDNParams struct {
+	Domain       string
+	HostedZoneID string
+	CertARN      string
+	Session      *session.Session
+	Queue        *queue.Q
+}
+
+type cdnConfig struct {
+	domain       string
+	hostedZoneID string
+	certARN      string
 }
 
 // New creates a new CDN creator
-func New(s *session.Session, q *queue.Q) *CDN {
+func New(params *CreateCDNParams) *CDN {
 	log.Print("DONE: setting up CDN-Creator")
 
 	cdn := &CDN{
-		cdn:   cloudfront.New(s),
-		dns:   route53.New(s),
-		queue: q,
-		acm:   acm.New(s),
+		cdn:   cloudfront.New(params.Session),
+		dns:   route53.New(params.Session),
+		queue: params.Queue,
+		acm:   acm.New(params.Session),
+		config: &cdnConfig{
+			domain:       params.Domain,
+			hostedZoneID: params.HostedZoneID,
+			certARN:      params.CertARN,
+		},
 	}
 
-	q.DestroyCDN.SetListener(cdn.deleteDisabledDistro)
-	q.Certificate.SetListener(cdn.updateCDNCertificate)
+	// params.Queue.DestroyCDN.SetListener(cdn.deleteDisabledDistro)
+	// params.Queue.Certificate.SetListener(cdn.updateCDNCertificate)
 
 	return cdn
+}
+
+func (c *CDN) HandleQueueMessaeDestroyCDN(distroID string, etag string) (ack bool) {
+	deleteDistroInput := &cloudfront.DeleteDistributionInput{
+		Id:      &distroID,
+		IfMatch: &etag,
+	}
+
+	_, err := c.cdn.DeleteDistribution(deleteDistroInput)
+	if err != nil {
+		log.Println("could not delete distro", err.Error())
+		return ack
+	}
+
+	return ack
 }

@@ -63,9 +63,10 @@ func setupPayment() bool {
 			PaymentMethodTypes: stripe.StringSlice([]string{
 				"card",
 			}),
-			// Customer: &customer.ID,
+			// Customer: stripe.String("cus_HQwsqYYhkLt3dY"),
 			LineItems: []*stripe.CheckoutSessionLineItemParams{
 				{
+					// TaxRates: []*string{stripe.String("txr_1Gs5FCK2tzGfLmpdpzGiuJNK")},
 					Price:    stripe.String("price_1GptsEK2tzGfLmpdXZGBLXjD"),
 					Quantity: stripe.Int64(1),
 				},

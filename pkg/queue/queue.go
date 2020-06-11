@@ -56,7 +56,7 @@ func New(sess *session.Session) Q {
 			sqs:               s,
 		},
 		Certificate: Queue{
-			name:              "DestroyCDNQueue",
+			name:              "CertificateQueue",
 			visibilityTimeout: 60,
 			url:               urlCertificate,
 			sqs:               s,

@@ -17,6 +17,9 @@ import (
 // RoutePrefix is the REST endpoint for repo
 const RoutePrefix = "/repo"
 
+// RouteSyncPrefix is the REST endpoint for syncing repos
+const RouteSyncPrefix = "/repo/sync"
+
 var methodHandlerMap = map[string]http.HandlerFunc{
 	http.MethodGet:  handleGET,
 	http.MethodPost: handlePOST,
@@ -31,6 +34,18 @@ func HandleHTTP(w http.ResponseWriter, req *http.Request) {
 
 	w.WriteHeader(http.StatusMethodNotAllowed)
 	w.Write([]byte("Method not allowed"))
+}
+
+// HandleSyncHTTP handles the Repo http endpoint
+func HandleSyncHTTP(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		w.Write([]byte("Method not allowed"))
+		return
+	}
+
+	repos := sync(req.Context())
+	w.Write(repos)
 }
 
 func handleGET(w http.ResponseWriter, req *http.Request) {
@@ -50,32 +65,45 @@ func list(ctx context.Context) []byte {
 	}
 
 	if reposStorage == "" {
-		client := auth.AuthenticateUser(ctx.Value(auth.ContextKeyToken).(string))
-
-		lsOpt := &github.RepositoryListOptions{
-			ListOptions: github.ListOptions{
-				PerPage: 50,
-			},
-		}
-
-		reps, _, err := client.Repositories.List(ctx, "", lsOpt)
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		repoList := []string{}
-		for _, r := range reps {
-			repoList = append(repoList, *r.Name)
-		}
-
-		reposJSON, _ := json.Marshal(repoList)
+		reposJSON := fetchReposJSON(ctx)
 		_, err = storage.Store.Repo.Set(ctx.Value(auth.ContextKeyUserName).(string), reposJSON)
 		if err != nil {
 			log.Println(err)
 		}
-
-		return reposJSON
 	}
 
 	return []byte(reposStorage)
+}
+
+func sync(ctx context.Context) []byte {
+	reposJSON := fetchReposJSON(ctx)
+	_, err := storage.Store.Repo.Set(ctx.Value(auth.ContextKeyUserName).(string), reposJSON)
+	if err != nil {
+		log.Println(err)
+	}
+
+	return reposJSON
+}
+
+func fetchReposJSON(ctx context.Context) []byte {
+	client := auth.AuthenticateUser(ctx.Value(auth.ContextKeyToken).(string))
+
+	lsOpt := &github.RepositoryListOptions{
+		ListOptions: github.ListOptions{
+			PerPage: 50,
+		},
+	}
+
+	reps, _, err := client.Repositories.List(ctx, "", lsOpt)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	repoList := []string{}
+	for _, r := range reps {
+		repoList = append(repoList, *r.Name)
+	}
+
+	reposJSON, _ := json.Marshal(repoList)
+	return reposJSON
 }

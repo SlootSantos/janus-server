@@ -11,19 +11,21 @@ import (
 
 // StackModel represents an entire JAM Stack
 type StackModel struct {
-	ID       string `json:"id"`
-	BucketID string `json:"bucketId"`
-	CDN      *StackCDNModel
-	Repo     *RepoModel
-	Build    *BuildModel
+	ID           string `json:"id"`
+	IsThirdParty bool   `json:"isThirdParty,omitempty"`
+	BucketID     string `json:"bucketId"`
+	CDN          *StackCDNModel
+	Repo         *RepoModel
+	Build        *BuildModel
 }
 
 // StackCDNModel contains all stack relevant information about the CDN
 type StackCDNModel struct {
-	ID        string `json:"id"`
-	Domain    string `json:"domain"`
-	AccessID  string `json:"accessId"`
-	Subdomain string `json:"subdomain"`
+	ID           string `json:"id"`
+	Domain       string `json:"domain"`
+	CustomDomain string `json:"customdomain"`
+	AccessID     string `json:"accessId"`
+	Subdomain    string `json:"subdomain"`
 }
 
 type stack struct {

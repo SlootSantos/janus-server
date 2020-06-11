@@ -1,5 +1,7 @@
 package queue
 
+const MessageCommonUser = "UserName"
+const MessageCommonIsThirdParty = "IsThirdParty"
 const MessageDestroyBucketID = "BucketID"
 const MessageDestroyAccessID = "AccessID"
 const MessageAccessDistroID = "DistroID"

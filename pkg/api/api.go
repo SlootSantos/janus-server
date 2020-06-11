@@ -13,15 +13,18 @@ import (
 	"github.com/SlootSantos/janus-server/pkg/jam"
 	"github.com/SlootSantos/janus-server/pkg/pipeline"
 	"github.com/SlootSantos/janus-server/pkg/repo"
+	"github.com/SlootSantos/janus-server/pkg/stacker"
 	"github.com/buildkite/terminal-to-html"
 )
 
 // Start sets up the HTTP endpoints for Janus
-func Start(j *jam.Creator) {
+func Start(s *stacker.Stacker) {
 	log.Println("START: setting up API routes")
 
 	http.HandleFunc(repo.RoutePrefix, auth.WithCredentials(repo.HandleHTTP))
-	http.HandleFunc(jam.RoutePrefix, auth.WithCredentials(j.ServeHTTP))
+	http.HandleFunc(repo.RouteSyncPrefix, auth.WithCredentials(repo.HandleSyncHTTP))
+	http.HandleFunc(jam.RoutePrefix, auth.WithCredentials(s.ServeHTTP))
+	http.HandleFunc(stacker.RouteCredentialsPrefix, auth.WithCredentials(stacker.SetThirdPartyAWSCredentials))
 	http.HandleFunc(auth.LoginCheck, auth.HandleLoginCheck)
 	http.HandleFunc(auth.Callback, auth.HandleCallback)
 	http.HandleFunc(pipeline.Hook, pipeline.HandleHook)

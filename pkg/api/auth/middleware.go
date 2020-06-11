@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"log"
 	"net/http"
 
 	"github.com/SlootSantos/janus-server/pkg/storage"
@@ -15,6 +14,9 @@ const ContextKeyToken key = "token"
 
 // ContextKeyUserName constant for context
 const ContextKeyUserName key = "userName"
+
+// ContextKeyIsThirdParty constant for context
+const ContextKeyIsThirdParty key = "ContextKeyIsThirdParty"
 
 // WithCredentials is a middleware function
 func WithCredentials(next http.HandlerFunc) http.HandlerFunc {
@@ -45,12 +47,12 @@ func WithCredentials(next http.HandlerFunc) http.HandlerFunc {
 }
 
 func createCtxWithToken(cookie *http.Cookie, req *http.Request) *http.Request {
+	ctx := req.Context()
+
 	authUser, _ := GetUserFromCookie(cookie)
 	userModel, _ := storage.Store.User.Get(authUser.Name)
 
-	log.Printf("%+v", userModel.Billing)
-
-	ctx := context.WithValue(req.Context(), ContextKeyToken, userModel.Token)
+	ctx = context.WithValue(ctx, ContextKeyToken, userModel.Token)
 	ctx = context.WithValue(ctx, ContextKeyUserName, authUser.Name)
 
 	return req.WithContext(ctx)

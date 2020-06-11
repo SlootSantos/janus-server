@@ -10,10 +10,18 @@ import (
 )
 
 type UserModel struct {
-	User    string `json:"user"`
-	Token   string `json:"token"`
-	IsPro   bool   `json:"isPro"`
-	Billing *UserBillding
+	User          string `json:"user"`
+	Token         string `json:"token"`
+	IsPro         bool   `json:"isPro"`
+	Billing       *UserBillding
+	ThirdPartyAWS *ThirdPartyAWS
+}
+
+type ThirdPartyAWS struct {
+	AccessKey string `json:"accessKey"`
+	SecretKey string `json:"secretKey"`
+	Domain    string `json:"domain"`
+	LambdaARN string `json:"lambdaARN"`
 }
 
 type UserBillding struct {

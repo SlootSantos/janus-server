@@ -34,7 +34,5 @@ func New(s *session.Session, q *queue.Q) *Bucket {
 		queue: q,
 	}
 
-	q.AccessID.SetListener(bucket.setBucketAccessID)
-
 	return bucket
 }

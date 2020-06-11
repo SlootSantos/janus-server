@@ -1,8 +1,6 @@
 package cdn
 
 import (
-	"os"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudfront"
 )
@@ -13,6 +11,7 @@ type constructDistroConfigInput struct {
 	certificateARN string
 	bucketID       string
 	stackID        string
+	isThirdParty   bool
 }
 
 const (
@@ -36,7 +35,7 @@ func (c *CDN) constructStandardDistroConfig(input *constructDistroConfigInput) *
 			// Aliases:           constructAliases(input.subdomain),
 			Origins: constructS3Origins(input.bucketID, input.originAccessID),
 			// ViewerCertificate:    constructCertificate(input.certificateARN),
-			DefaultCacheBehavior: constructDefaultCacheBehavior(input.bucketID),
+			DefaultCacheBehavior: constructDefaultCacheBehavior(input.bucketID, input.isThirdParty),
 			CustomErrorResponses: constructErrorBehavior(),
 		},
 	}
@@ -65,8 +64,8 @@ func constructErrorBehavior() *cloudfront.CustomErrorResponses {
 	}
 }
 
-func constructAliases(subdomain string) *cloudfront.Aliases {
-	alias := subdomain + "." + os.Getenv("DOMAIN_HOST")
+func constructAliases(subdomain string, domainHost string) *cloudfront.Aliases {
+	alias := subdomain + "." + domainHost
 
 	return &cloudfront.Aliases{
 		Quantity: aws.Int64(5),
@@ -95,13 +94,13 @@ func constructS3Origins(bucketID string, originAccessID string) *cloudfront.Orig
 	}
 }
 
-func constructDefaultCacheBehavior(bucketID string) *cloudfront.DefaultCacheBehavior {
+func constructDefaultCacheBehavior(bucketID string, isThirdParty bool) *cloudfront.DefaultCacheBehavior {
 	return &cloudfront.DefaultCacheBehavior{
 		MinTTL:                     aws.Int64(10),
 		Compress:                   aws.Bool(true),
 		TargetOriginId:             aws.String(cdnPrefix + bucketID),
 		ViewerProtocolPolicy:       aws.String(cacheProtocolPolicy),
-		LambdaFunctionAssociations: blueGreenLambdaFuncConfig(),
+		LambdaFunctionAssociations: blueGreenLambdaFuncConfig(isThirdParty),
 		TrustedSigners: &cloudfront.TrustedSigners{
 			Quantity: aws.Int64(0),
 			Enabled:  aws.Bool(false),

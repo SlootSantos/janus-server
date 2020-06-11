@@ -1,11 +1,13 @@
 package cdn
 
 import (
+	"context"
 	"fmt"
 	"log"
-	"os"
+	"strconv"
 	"time"
 
+	"github.com/SlootSantos/janus-server/pkg/api/auth"
 	"github.com/SlootSantos/janus-server/pkg/queue"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -15,10 +17,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
-func (c *CDN) issueCertificate(subdomain string, distroID string) {
-	fullyQualifiedDomain := subdomain + "." + os.Getenv("DOMAIN_HOST")
+func (c *CDN) issueCertificate(ctx context.Context, subdomain string, distroID string) {
+	fullyQualifiedDomain := subdomain + "." + c.config.domain
 
-	res, _ := c.acm.RequestCertificate(&acm.RequestCertificateInput{
+	res, err := c.acm.RequestCertificate(&acm.RequestCertificateInput{
 		DomainName:       aws.String(fullyQualifiedDomain),
 		ValidationMethod: aws.String("DNS"),
 		SubjectAlternativeNames: []*string{
@@ -26,20 +28,31 @@ func (c *CDN) issueCertificate(subdomain string, distroID string) {
 			aws.String("*.pr." + fullyQualifiedDomain),
 		},
 	})
+	if err != nil {
+		panic("Error when creating cert" + err.Error())
+	}
+
+	if *res.CertificateArn == "" {
+		panic("No certifcate ARN")
+	}
 
 	for {
 		time.Sleep(time.Second * 5)
-		done := c.createCertificateDNSRecords(*res.CertificateArn, distroID, subdomain)
+		done := c.createCertificateDNSRecords(ctx, *res.CertificateArn, distroID, subdomain)
 		if done {
 			break
 		}
 	}
 }
 
-func (c *CDN) createCertificateDNSRecords(certARN string, distroID string, subdomain string) bool {
+func (c *CDN) createCertificateDNSRecords(ctx context.Context, certARN string, distroID string, subdomain string) bool {
 	rr, err := c.acm.DescribeCertificate(&acm.DescribeCertificateInput{
 		CertificateArn: &certARN,
 	})
+	if err != nil {
+		log.Println("Error describing certificate")
+		panic(err.Error())
+	}
 
 	if len(rr.Certificate.DomainValidationOptions) == 0 {
 		return false
@@ -48,6 +61,11 @@ func (c *CDN) createCertificateDNSRecords(certARN string, distroID string, subdo
 	dnsEntryChanges := []*route53.Change{}
 	createdChanges := make(map[string]bool)
 	for _, validationOption := range rr.Certificate.DomainValidationOptions {
+		if validationOption.ResourceRecord == nil || *validationOption.ResourceRecord.Name == "" {
+			continue
+
+		}
+
 		if _, ok := createdChanges[*validationOption.ResourceRecord.Name]; ok {
 			continue
 		}
@@ -76,13 +94,16 @@ func (c *CDN) createCertificateDNSRecords(certARN string, distroID string, subdo
 			Changes: dnsEntryChanges,
 			Comment: aws.String("DNS Validation for PR preview."),
 		},
-		HostedZoneId: aws.String("/hostedzone/" + os.Getenv("DOMAIN_ZONE_ID")),
+		// HostedZoneId: aws.String("/hostedzone/" + os.Getenv("DOMAIN_ZONE_ID")),
+		HostedZoneId: aws.String(c.config.hostedZoneID),
 	}
 
 	_, err = c.dns.ChangeResourceRecordSets(recordParams)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
+
+	isThirdPartyStr := strconv.FormatBool(ctx.Value(auth.ContextKeyIsThirdParty).(bool))
 
 	c.queue.Certificate.Push(queue.QueueMessage{
 		queue.MessageCertificateARN: &sqs.MessageAttributeValue{
@@ -97,33 +118,25 @@ func (c *CDN) createCertificateDNSRecords(certARN string, distroID string, subdo
 			DataType:    aws.String("String"),
 			StringValue: aws.String(subdomain),
 		},
+		queue.MessageCommonUser: &sqs.MessageAttributeValue{
+			DataType:    aws.String("String"),
+			StringValue: aws.String(ctx.Value(auth.ContextKeyUserName).(string)),
+		},
+		queue.MessageCommonIsThirdParty: &sqs.MessageAttributeValue{
+			DataType:    aws.String("String"),
+			StringValue: aws.String(isThirdPartyStr),
+		},
 	})
 
 	return true
 }
 
-func (c *CDN) updateCDNCertificate(message queue.QueueMessage) (ack bool) {
+func (c *CDN) HandleQueueMessageCertificate(distroID string, certificateARN string, subdomain string) (ack bool) {
 	log.Println("RECEIVING CERT UPDATE MESSAGE")
-	distroID, ok := message[queue.MessageCertificateDistroID]
-	if !ok {
-		log.Println("Handling queue message for CDN failed. attribute:", queue.MessageCertificateDistroID, " does not exist on message")
-		return ack
-	}
-
-	certificateARN, ok := message[queue.MessageCertificateARN]
-	if !ok {
-		log.Println("Handling queue message for CDN failed. attribute:", queue.MessageCertificateARN, " does not exist on message")
-		return ack
-	}
-
-	subdomain, ok := message[queue.MessageCertificateSubDomain]
-	if !ok {
-		log.Println("Handling queue message for CDN failed. attribute:", queue.MessageCertificateSubDomain, " does not exist on message")
-		return ack
-	}
+	log.Println(distroID, certificateARN, subdomain)
 
 	getDistroInput := &cloudfront.GetDistributionInput{
-		Id: aws.String(*distroID.StringValue),
+		Id: aws.String(distroID),
 	}
 
 	output, err := c.cdn.GetDistribution(getDistroInput)
@@ -133,8 +146,8 @@ func (c *CDN) updateCDNCertificate(message queue.QueueMessage) (ack bool) {
 	}
 
 	conf := *output.Distribution.DistributionConfig
-	conf.ViewerCertificate = constructCertificate(*certificateARN.StringValue)
-	conf.Aliases = constructAliases(*subdomain.StringValue)
+	conf.ViewerCertificate = constructCertificate(certificateARN)
+	conf.Aliases = constructAliases(subdomain, c.config.domain)
 
 	input := &cloudfront.UpdateDistributionInput{
 		DistributionConfig: &conf,

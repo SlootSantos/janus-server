@@ -48,7 +48,7 @@ then
   DEPLOY_BRANCH=$(cat .stackers/config.json | jq -r --arg BRANCH "${STACKERS_BRANCH}" '.branches | to_entries[] | select(.value == $BRANCH) | .key')
 
   echo SETTING ENV\'s
-  eval $(cat .stackers/config.json | jq -r '.envs[] | to_entries[] | [.key,.value] | join("=")')
+  eval $(cat .stackers/config.json | jq -r '.envs[] | to_entries[] | [.key,.value] | "export " + join("=")')
 
   echo "pre_install"
   eval $(cat .stackers/config.json | jq -r '.pre_install')

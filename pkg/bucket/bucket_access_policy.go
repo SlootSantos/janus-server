@@ -5,27 +5,14 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/SlootSantos/janus-server/pkg/queue"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 type bucketPolicy map[string]interface{}
 
-func (b *Bucket) setBucketAccessID(message queue.QueueMessage) (ack bool) {
-	bucketID, ok := message[queue.MessageDestroyBucketID]
-	if !ok {
-		log.Println("Handling queue message for Bucket-Policy failed. attribute:", queue.MessageDestroyBucketID, " does not exist on message")
-		return ack
-	}
-
-	accessID, ok := message[queue.MessageDestroyAccessID]
-	if !ok {
-		log.Println("Handling queue message for Bucket-Policy failed. attribute:", queue.MessageDestroyAccessID, " does not exist on message")
-		return ack
-	}
-
-	policyString := createPolicy(*accessID.StringValue, *bucketID.StringValue)
+func (b *Bucket) HandleQueueMessageAccessID(bucketID string, accessID string) (ack bool) {
+	policyString := createPolicy(accessID, bucketID)
 	policy, err := json.Marshal(policyString)
 	if err != nil {
 		log.Println(err)
@@ -33,10 +20,11 @@ func (b *Bucket) setBucketAccessID(message queue.QueueMessage) (ack bool) {
 	}
 
 	_, err = b.s3.PutBucketPolicy(&s3.PutBucketPolicyInput{
-		Bucket: bucketID.StringValue,
+		Bucket: &bucketID,
 		Policy: aws.String(string(policy)),
 	})
 	if err != nil {
+		log.Println("Error setting policy", err.Error())
 		return ack
 	}
 

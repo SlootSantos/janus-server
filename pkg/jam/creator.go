@@ -17,7 +17,7 @@ const bucketPrefix = "janus-bucket-"
 
 // builds entire JAM-Stack
 // including a Bucket, a CDN and a Githook
-func (j *Creator) build(ctx context.Context, config stackConfig) ([]byte, error) {
+func (j *Creator) Build(ctx context.Context, config StackCreateConfig) ([]byte, error) {
 	stackID := generateRandomID()
 	subdomain := config.CustomSubDomain
 
@@ -45,6 +45,7 @@ func (j *Creator) build(ctx context.Context, config stackConfig) ([]byte, error)
 	}
 
 	userName := ctx.Value(auth.ContextKeyUserName).(string)
+	creationStack.IsThirdParty = config.IsThirdParty
 
 	updatedList, err := storeStack(&creationStack, userName)
 	if err != nil {
@@ -54,7 +55,7 @@ func (j *Creator) build(ctx context.Context, config stackConfig) ([]byte, error)
 	return updatedList, nil
 }
 
-func (j *Creator) delete(ctx context.Context, stackID string) ([]byte, error) {
+func (j *Creator) Delete(ctx context.Context, stackID string) ([]byte, error) {
 	user := ctx.Value(auth.ContextKeyUserName).(string)
 
 	stack := getStackByID(stackID, user)
@@ -77,7 +78,7 @@ func (j *Creator) delete(ctx context.Context, stackID string) ([]byte, error) {
 	return updatedList, nil
 }
 
-func (j *Creator) list(ctx context.Context) ([]Stack, error) {
+func (j *Creator) List(ctx context.Context) ([]Stack, error) {
 	stacks := getAllStacks(ctx.Value(auth.ContextKeyUserName).(string))
 
 	return stacks, nil

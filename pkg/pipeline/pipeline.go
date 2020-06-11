@@ -14,6 +14,11 @@ import (
 	"github.com/docker/go-connections/nat"
 )
 
+type Pipeline struct {
+	queue      []*ContainerRunParams
+	isBuilding bool
+}
+
 type ContainerRunParams struct {
 	AWSAccess string
 	AWSSecret string
@@ -54,6 +59,35 @@ const (
 	bindingProtocol      = "tcp"
 	bindingHost          = "0.0.0.0"
 )
+
+var _pipeline = Pipeline{}
+
+func Push(params ContainerRunParams) {
+	_pipeline.queue = append(_pipeline.queue, &params)
+
+	if _pipeline.isBuilding {
+		return
+	}
+
+	_pipeline.isBuilding = true
+	processBuilds()
+}
+
+func processBuilds() {
+	if len(_pipeline.queue) == 0 {
+		_pipeline.isBuilding = false
+		return
+	}
+
+	nextBuild := _pipeline.queue[0]
+	_pipeline.queue = _pipeline.queue[1:]
+	log.Println("going!")
+	log.Printf("%+v", nextBuild)
+
+	BuildRepoSources(*nextBuild)
+
+	processBuilds()
+}
 
 func BuildRepoSources(params ContainerRunParams) {
 	cli, err := client.NewEnvClient()

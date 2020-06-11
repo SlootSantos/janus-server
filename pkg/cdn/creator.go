@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 
+	"github.com/SlootSantos/janus-server/pkg/api/auth"
 	"github.com/SlootSantos/janus-server/pkg/jam"
 	"github.com/SlootSantos/janus-server/pkg/queue"
 	"github.com/aws/aws-sdk-go/aws"
@@ -18,11 +20,13 @@ const cdnS3OriginSuffix = ".s3.us-east-1.amazonaws.com"
 
 // Create generates a Cloudfront-Distro at AWS
 func (c *CDN) Create(ctx context.Context, param *jam.CreationParam, out *jam.OutputParam) (string, error) {
+	isThirdParty := ctx.Value(auth.ContextKeyIsThirdParty).(bool)
+
 	fmt.Println("STARTING: creating bucket ID:", param.Bucket.ID)
 	bucketID := param.Bucket.ID
 	subdomain := param.CDN.Subdomain
 
-	accessID, err := c.createOrginAccess(bucketID)
+	accessID, err := c.createOrginAccess(ctx, bucketID)
 	if err != nil {
 		return "", err
 	}
@@ -32,6 +36,7 @@ func (c *CDN) Create(ctx context.Context, param *jam.CreationParam, out *jam.Out
 		originAccessID: *accessID,
 		stackID:        param.ID,
 		subdomain:      subdomain,
+		isThirdParty:   isThirdParty,
 	}
 
 	config := c.constructStandardDistroConfig(distroConfigInput)
@@ -40,14 +45,15 @@ func (c *CDN) Create(ctx context.Context, param *jam.CreationParam, out *jam.Out
 		log.Println("could not create Cloudfront distro", err)
 	}
 
-	c.createDNSRecord(*createDistroOuput.Distribution.DomainName, subdomain)
-	c.issueCertificate(subdomain, *createDistroOuput.Distribution.Id)
+	go c.createDNSRecord(*createDistroOuput.Distribution.DomainName, subdomain)
+	go c.issueCertificate(ctx, subdomain, *createDistroOuput.Distribution.Id)
 
 	out.CDN = &jam.StackCDN{
-		Subdomain: subdomain,
-		AccessID:  *accessID,
-		Domain:    *createDistroOuput.Distribution.DomainName,
-		ID:        *createDistroOuput.Distribution.Id,
+		CustomDomain: subdomain + "." + c.config.domain,
+		Subdomain:    subdomain,
+		AccessID:     *accessID,
+		Domain:       *createDistroOuput.Distribution.DomainName,
+		ID:           *createDistroOuput.Distribution.Id,
 	}
 
 	log.Println("DONE: creating up CDN ID:", out.CDN.ID)
@@ -56,6 +62,8 @@ func (c *CDN) Create(ctx context.Context, param *jam.CreationParam, out *jam.Out
 
 // Destroy deletes a Cloudfront-Distro at AWS
 func (c *CDN) Destroy(ctx context.Context, param *jam.DeletionParam) error {
+	isThirdParty := ctx.Value(auth.ContextKeyIsThirdParty).(bool)
+
 	log.Println("START: destroying CDN")
 
 	getDistroInput := &cloudfront.GetDistributionInput{
@@ -92,6 +100,14 @@ func (c *CDN) Destroy(ctx context.Context, param *jam.DeletionParam) error {
 			queue.MessageAccessEtag: &sqs.MessageAttributeValue{
 				StringValue: res.ETag,
 				DataType:    aws.String("String"),
+			},
+			queue.MessageCommonUser: &sqs.MessageAttributeValue{
+				DataType:    aws.String("String"),
+				StringValue: aws.String(ctx.Value(auth.ContextKeyUserName).(string)),
+			},
+			queue.MessageCommonIsThirdParty: &sqs.MessageAttributeValue{
+				DataType:    aws.String("String"),
+				StringValue: aws.String(strconv.FormatBool(isThirdParty)),
 			},
 		},
 	)

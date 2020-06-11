@@ -3,7 +3,6 @@ package cdn
 import (
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/route53"
@@ -34,7 +33,7 @@ func (c *CDN) handleCommonRoute53Change(action string, subdomain string, target 
 				{
 					Action: aws.String(action),
 					ResourceRecordSet: &route53.ResourceRecordSet{
-						Name: aws.String(subdomain + "." + os.Getenv("DOMAIN_HOST")),
+						Name: aws.String(subdomain + "." + c.config.domain),
 						Type: aws.String("CNAME"),
 						ResourceRecords: []*route53.ResourceRecord{
 							{
@@ -49,7 +48,7 @@ func (c *CDN) handleCommonRoute53Change(action string, subdomain string, target 
 				{
 					Action: aws.String(action),
 					ResourceRecordSet: &route53.ResourceRecordSet{
-						Name: aws.String(aliasPrefixGreenDeployment + subdomain + "." + os.Getenv("DOMAIN_HOST")),
+						Name: aws.String(aliasPrefixGreenDeployment + subdomain + "." + c.config.domain),
 						Type: aws.String("CNAME"),
 						ResourceRecords: []*route53.ResourceRecord{
 							{
@@ -64,7 +63,7 @@ func (c *CDN) handleCommonRoute53Change(action string, subdomain string, target 
 				{
 					Action: aws.String(action),
 					ResourceRecordSet: &route53.ResourceRecordSet{
-						Name: aws.String(aliasPrefixDevelopmentEnv + subdomain + "." + os.Getenv("DOMAIN_HOST")),
+						Name: aws.String(aliasPrefixDevelopmentEnv + subdomain + "." + c.config.domain),
 						Type: aws.String("CNAME"),
 						ResourceRecords: []*route53.ResourceRecord{
 							{
@@ -79,7 +78,7 @@ func (c *CDN) handleCommonRoute53Change(action string, subdomain string, target 
 				{
 					Action: aws.String(action),
 					ResourceRecordSet: &route53.ResourceRecordSet{
-						Name: aws.String(aliasPrefixStageEnv + subdomain + "." + os.Getenv("DOMAIN_HOST")),
+						Name: aws.String(aliasPrefixStageEnv + subdomain + "." + c.config.domain),
 						Type: aws.String("CNAME"),
 						ResourceRecords: []*route53.ResourceRecord{
 							{
@@ -94,7 +93,7 @@ func (c *CDN) handleCommonRoute53Change(action string, subdomain string, target 
 				{
 					Action: aws.String(action),
 					ResourceRecordSet: &route53.ResourceRecordSet{
-						Name: aws.String(aliasPrefixPRPreview + subdomain + "." + os.Getenv("DOMAIN_HOST")),
+						Name: aws.String(aliasPrefixPRPreview + subdomain + "." + c.config.domain),
 						Type: aws.String("CNAME"),
 						ResourceRecords: []*route53.ResourceRecord{
 							{
@@ -109,7 +108,8 @@ func (c *CDN) handleCommonRoute53Change(action string, subdomain string, target 
 			},
 			Comment: aws.String("Sample update."),
 		},
-		HostedZoneId: aws.String("/hostedzone/" + os.Getenv("DOMAIN_ZONE_ID")),
+		HostedZoneId: aws.String(c.config.hostedZoneID),
+		// HostedZoneId: aws.String("/hostedzone/" + os.Getenv("DOMAIN_ZONE_ID")),
 	}
 
 	_, err := c.dns.ChangeResourceRecordSets(recordParams)
