@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/SlootSantos/janus-server/pkg/api/auth"
 	"github.com/SlootSantos/janus-server/pkg/jam"
 	"github.com/SlootSantos/janus-server/pkg/queue"
 	"github.com/aws/aws-sdk-go/aws"
@@ -28,6 +29,11 @@ func TestCDN_Create(t *testing.T) {
 			dns:   dnsMock,
 			acm:   acmMock,
 			queue: &qMock,
+			config: &cdnConfig{
+				domain:       "test.com",
+				certARN:      "arn:cert:1234",
+				hostedZoneID: "/hostedzone/12345",
+			},
 		}
 
 		output := &jam.OutputParam{}
@@ -56,11 +62,11 @@ func TestCDN_Create(t *testing.T) {
 		}
 
 		expectedCertificateParam := &acm.RequestCertificateInput{
-			DomainName:       aws.String("subdomain.test"),
+			DomainName:       aws.String("subdomain.test.com"),
 			ValidationMethod: aws.String("DNS"),
 			SubjectAlternativeNames: []*string{
-				aws.String("*." + "subdomain.test"),
-				aws.String("*.pr." + "subdomain.test"),
+				aws.String("*." + "subdomain.test.com"),
+				aws.String("*.pr." + "subdomain.test.com"),
 			},
 		}
 		returnCertificateParam := &acm.RequestCertificateOutput{
@@ -88,7 +94,10 @@ func TestCDN_Create(t *testing.T) {
 		dnsMock.EXPECT().ChangeResourceRecordSets(gomock.Any()).Times(1)
 		sqsMock.EXPECT().SendMessage(gomock.Any()).Times(2)
 
-		_, err := c.Create(context.Background(), input, output)
+		ctx := context.WithValue(context.Background(), auth.ContextKeyIsThirdParty, false)
+		ctx = context.WithValue(ctx, auth.ContextKeyUserName, "Tester")
+
+		_, err := c.Create(ctx, input, output)
 		if err != nil {
 			t.Errorf("CDN.Create() error = %v, wantErr %v", err, nil)
 			return
@@ -108,6 +117,11 @@ func TestCDN_Create(t *testing.T) {
 			dns:   dnsMock,
 			acm:   acmMock,
 			queue: &qMock,
+			config: &cdnConfig{
+				domain:       "test.com",
+				certARN:      "arn:cert:1234",
+				hostedZoneID: "/hostedzone/12345",
+			},
 		}
 
 		output := &jam.OutputParam{}
@@ -168,7 +182,10 @@ func TestCDN_Create(t *testing.T) {
 		dnsMock.EXPECT().ChangeResourceRecordSets(gomock.Any()).Times(1)
 		sqsMock.EXPECT().SendMessage(gomock.Any()).Times(2)
 
-		c.Create(context.Background(), input, output)
+		ctx := context.WithValue(context.Background(), auth.ContextKeyIsThirdParty, false)
+		ctx = context.WithValue(ctx, auth.ContextKeyUserName, "Tester")
+
+		c.Create(ctx, input, output)
 		if output.CDN.ID != "6778ghj" {
 			t.Errorf("CDN.Create() error = %v, wantErr %v", output.CDN.ID, "6778ghj")
 			return
@@ -190,6 +207,11 @@ func TestCDN_Delete(t *testing.T) {
 			dns:   dnsMock,
 			acm:   acmMock,
 			queue: &qMock,
+			config: &cdnConfig{
+				domain:       "test.com",
+				certARN:      "arn:cert:1234",
+				hostedZoneID: "/hostedzone/12345",
+			},
 		}
 
 		input := &jam.DeletionParam{
@@ -227,7 +249,9 @@ func TestCDN_Delete(t *testing.T) {
 		dnsMock.EXPECT().ChangeResourceRecordSets(gomock.Any()).Times(1)
 		sqsMock.EXPECT().SendMessage(gomock.Any()).Times(1)
 
-		err := c.Destroy(context.Background(), input)
+		ctx := context.WithValue(context.Background(), auth.ContextKeyIsThirdParty, false)
+		ctx = context.WithValue(ctx, auth.ContextKeyUserName, "Tester")
+		err := c.Destroy(ctx, input)
 		if err != nil {
 			t.Errorf("CDN.Create() error = %v, wantErr %v", err, nil)
 			return

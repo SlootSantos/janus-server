@@ -22,7 +22,6 @@ const cdnS3OriginSuffix = ".s3.us-east-1.amazonaws.com"
 func (c *CDN) Create(ctx context.Context, param *jam.CreationParam, out *jam.OutputParam) (string, error) {
 	isThirdParty := ctx.Value(auth.ContextKeyIsThirdParty).(bool)
 
-	fmt.Println("STARTING: creating bucket ID:", param.Bucket.ID)
 	bucketID := param.Bucket.ID
 	subdomain := param.CDN.Subdomain
 
