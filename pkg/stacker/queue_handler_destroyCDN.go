@@ -25,6 +25,12 @@ func deleteDisabledDistro(message queue.QueueMessage) (ack bool) {
 		return ack
 	}
 
+	certARN, ok := message[queue.MessageCertificateARN]
+	if !ok {
+		log.Println("Handling queue message for CDN failed. attribute:", queue.MessageCertificateARN, " does not exist on message")
+		return ack
+	}
+
 	username, ok := message[queue.MessageCommonUser]
 	if !ok {
 		log.Println("Handling queue message for CDN failed. attribute:", queue.MessageCommonUser, " does not exist on message")
@@ -74,5 +80,5 @@ func deleteDisabledDistro(message queue.QueueMessage) (ack bool) {
 
 	c := cdn.New(cdnConf)
 
-	return c.HandleQueueMessaeDestroyCDN(*distroID.StringValue, *etag.StringValue)
+	return c.HandleQueueMessaeDestroyCDN(*distroID.StringValue, *etag.StringValue, *certARN.StringValue)
 }

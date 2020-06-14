@@ -44,16 +44,17 @@ func (c *CDN) Create(ctx context.Context, param *jam.CreationParam, out *jam.Out
 		log.Println("could not create Cloudfront distro", err)
 	}
 
-	go c.createDNSRecord(*createDistroOuput.Distribution.DomainName, subdomain)
-	go c.issueCertificate(ctx, subdomain, *createDistroOuput.Distribution.Id)
-
+	certARN := c.issueCertificate(ctx, subdomain, *createDistroOuput.Distribution.Id)
 	out.CDN = &jam.StackCDN{
-		CustomDomain: subdomain + "." + c.config.domain,
-		Subdomain:    subdomain,
-		AccessID:     *accessID,
-		Domain:       *createDistroOuput.Distribution.DomainName,
-		ID:           *createDistroOuput.Distribution.Id,
+		CustomDomain:   subdomain + "." + c.config.domain,
+		Subdomain:      subdomain,
+		AccessID:       *accessID,
+		Domain:         *createDistroOuput.Distribution.DomainName,
+		ID:             *createDistroOuput.Distribution.Id,
+		CertificateARN: certARN,
 	}
+
+	go c.createDNSRecord(*createDistroOuput.Distribution.DomainName, subdomain)
 
 	log.Println("DONE: creating up CDN ID:", out.CDN.ID)
 	return "", nil
@@ -103,6 +104,10 @@ func (c *CDN) Destroy(ctx context.Context, param *jam.DeletionParam) error {
 			queue.MessageCommonUser: &sqs.MessageAttributeValue{
 				DataType:    aws.String("String"),
 				StringValue: aws.String(ctx.Value(auth.ContextKeyUserName).(string)),
+			},
+			queue.MessageCertificateARN: &sqs.MessageAttributeValue{
+				DataType:    aws.String("String"),
+				StringValue: aws.String(param.CDN.CertificateARN),
 			},
 			queue.MessageCommonIsThirdParty: &sqs.MessageAttributeValue{
 				DataType:    aws.String("String"),

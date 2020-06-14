@@ -89,8 +89,9 @@ func fetchReposJSON(ctx context.Context) []byte {
 	client := auth.AuthenticateUser(ctx.Value(auth.ContextKeyToken).(string))
 
 	lsOpt := &github.RepositoryListOptions{
+		// Affiliation: "oranization_member",
 		ListOptions: github.ListOptions{
-			PerPage: 50,
+			PerPage: 100,
 		},
 	}
 

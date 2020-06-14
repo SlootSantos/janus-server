@@ -29,6 +29,7 @@ type certificateHandler interface {
 	RequestCertificate(*acm.RequestCertificateInput) (*acm.RequestCertificateOutput, error)
 	GetCertificate(*acm.GetCertificateInput) (*acm.GetCertificateOutput, error)
 	DescribeCertificate(*acm.DescribeCertificateInput) (*acm.DescribeCertificateOutput, error)
+	DeleteCertificate(*acm.DeleteCertificateInput) (*acm.DeleteCertificateOutput, error)
 }
 
 // CDN contains all data to interact w/ AWS Cloudfront
@@ -70,13 +71,10 @@ func New(params *CreateCDNParams) *CDN {
 		},
 	}
 
-	// params.Queue.DestroyCDN.SetListener(cdn.deleteDisabledDistro)
-	// params.Queue.Certificate.SetListener(cdn.updateCDNCertificate)
-
 	return cdn
 }
 
-func (c *CDN) HandleQueueMessaeDestroyCDN(distroID string, etag string) (ack bool) {
+func (c *CDN) HandleQueueMessaeDestroyCDN(distroID string, etag string, certARN string) (ack bool) {
 	deleteDistroInput := &cloudfront.DeleteDistributionInput{
 		Id:      &distroID,
 		IfMatch: &etag,
@@ -88,5 +86,12 @@ func (c *CDN) HandleQueueMessaeDestroyCDN(distroID string, etag string) (ack boo
 		return ack
 	}
 
+	err = c.destroyCertificate(certARN)
+	if err != nil {
+		log.Println("could not delete distro Certificate", err.Error())
+		return ack
+	}
+
+	ack = true
 	return ack
 }

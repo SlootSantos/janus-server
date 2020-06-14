@@ -230,3 +230,18 @@ func (mr *MockcertificateHandlerMockRecorder) DescribeCertificate(arg0 interface
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeCertificate", reflect.TypeOf((*MockcertificateHandler)(nil).DescribeCertificate), arg0)
 }
+
+// DeleteCertificate mocks base method
+func (m *MockcertificateHandler) DeleteCertificate(arg0 *acm.DeleteCertificateInput) (*acm.DeleteCertificateOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteCertificate", arg0)
+	ret0, _ := ret[0].(*acm.DeleteCertificateOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteCertificate indicates an expected call of DeleteCertificate
+func (mr *MockcertificateHandlerMockRecorder) DeleteCertificate(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCertificate", reflect.TypeOf((*MockcertificateHandler)(nil).DeleteCertificate), arg0)
+}

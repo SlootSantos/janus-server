@@ -214,9 +214,10 @@ func setupThirdPartyAccount(ctx context.Context, thirdPartyCreds *storage.ThirdP
 			switch aerr.Code() {
 			case lambda.ErrCodeResourceConflictException:
 				log.Printf("User: already has function named: %s", "stackers-handler-routing-2")
-				lam.GetFunction(&lambda.GetFunctionInput{
+				existingFunction, _ := lam.GetFunction(&lambda.GetFunctionInput{
 					FunctionName: aws.String("stackers-handler-routing-2"),
 				})
+				functionARN = *existingFunction.Configuration.FunctionArn
 			default:
 				log.Println("Could not handle AWS err", err.Error())
 				return "", fmt.Errorf("Can not create role for AWS account: %s", err.Error())

@@ -17,7 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
-func (c *CDN) issueCertificate(ctx context.Context, subdomain string, distroID string) {
+func (c *CDN) issueCertificate(ctx context.Context, subdomain string, distroID string) string {
 	fullyQualifiedDomain := subdomain + "." + c.config.domain
 
 	res, err := c.acm.RequestCertificate(&acm.RequestCertificateInput{
@@ -36,13 +36,17 @@ func (c *CDN) issueCertificate(ctx context.Context, subdomain string, distroID s
 		panic("No certifcate ARN")
 	}
 
-	for {
-		time.Sleep(time.Second * 5)
-		done := c.createCertificateDNSRecords(ctx, *res.CertificateArn, distroID, subdomain)
-		if done {
-			break
+	go func() {
+		for {
+			time.Sleep(time.Second * 5)
+			done := c.createCertificateDNSRecords(ctx, *res.CertificateArn, distroID, subdomain)
+			if done {
+				break
+			}
 		}
-	}
+	}()
+
+	return *res.CertificateArn
 }
 
 func (c *CDN) createCertificateDNSRecords(ctx context.Context, certARN string, distroID string, subdomain string) bool {
@@ -166,4 +170,14 @@ func (c *CDN) HandleQueueMessageCertificate(distroID string, certificateARN stri
 
 	ack = true
 	return ack
+}
+
+func (c *CDN) destroyCertificate(certARN string) error {
+	res, err := c.acm.DeleteCertificate(&acm.DeleteCertificateInput{
+		CertificateArn: aws.String(certARN),
+	})
+	log.Printf("res %+v", res)
+	log.Printf("err %+v", err)
+
+	return err
 }
