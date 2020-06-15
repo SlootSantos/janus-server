@@ -7,8 +7,10 @@ import (
 
 // RepoModel represents a Stacks repository
 type RepoModel struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
+	ID    int64  `json:"id"`
+	Name  string `json:"name"`
+	Owner string `json:"owner"`
+	Type  string `json:"type"`
 }
 
 type repo struct {

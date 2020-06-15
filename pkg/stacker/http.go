@@ -42,7 +42,7 @@ func (s *Stacker) handlePOST(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if config.Repository == "" {
+	if config.Repository.Name == "" {
 		http.Error(w, "Missing Repository param", http.StatusBadRequest)
 		return
 	}

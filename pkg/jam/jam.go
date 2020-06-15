@@ -21,11 +21,9 @@ type StackRepo = storage.RepoModel
 type CreationParam struct {
 	ID     string
 	CDN    StackCDN
+	Repo   StackRepo
 	Bucket struct {
 		ID string
-	}
-	Repo struct {
-		Name string
 	}
 }
 

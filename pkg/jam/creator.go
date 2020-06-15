@@ -11,6 +11,7 @@ import (
 
 	"github.com/SlootSantos/janus-server/pkg/api/auth"
 	"github.com/SlootSantos/janus-server/pkg/storage"
+	"github.com/google/go-github/github"
 )
 
 const bucketPrefix = "janus-bucket-"
@@ -33,9 +34,7 @@ func (j *Creator) Build(ctx context.Context, config StackCreateConfig) ([]byte, 
 		Bucket: struct{ ID string }{
 			ID: bucketPrefix + stackID,
 		},
-		Repo: struct{ Name string }{
-			Name: config.Repository,
-		},
+		Repo: config.Repository,
 	}
 
 	creationResult, err := j.buildStack(ctx, creationParam)
@@ -44,10 +43,8 @@ func (j *Creator) Build(ctx context.Context, config StackCreateConfig) ([]byte, 
 		return nil, err
 	}
 
-	userName := ctx.Value(auth.ContextKeyUserName).(string)
 	creationStack.IsThirdParty = config.IsThirdParty
-
-	updatedList, err := storeStack(&creationStack, userName)
+	updatedList, err := storeStack(ctx, &creationStack, config.Repository.Owner)
 	if err != nil {
 		return []byte{}, err
 	}
@@ -58,7 +55,7 @@ func (j *Creator) Build(ctx context.Context, config StackCreateConfig) ([]byte, 
 func (j *Creator) Delete(ctx context.Context, stackID string) ([]byte, error) {
 	user := ctx.Value(auth.ContextKeyUserName).(string)
 
-	stack := getStackByID(stackID, user)
+	stack := getStackByID(ctx, user, stackID)
 	if stack == (Stack{}) {
 		err := errors.New("No Stack ID: " + stackID + " for User: " + user)
 		log.Println(err.Error())
@@ -69,7 +66,7 @@ func (j *Creator) Delete(ctx context.Context, stackID string) ([]byte, error) {
 	deletionParam := DeletionParam(stack)
 	j.destroyStack(ctx, &deletionParam)
 
-	updatedList, err := removeStack(&stack, user)
+	updatedList, err := removeStack(ctx, &stack, user)
 	if err != nil {
 		log.Println(err)
 		return []byte{}, err
@@ -79,7 +76,8 @@ func (j *Creator) Delete(ctx context.Context, stackID string) ([]byte, error) {
 }
 
 func (j *Creator) List(ctx context.Context) ([]Stack, error) {
-	stacks := getAllStacks(ctx.Value(auth.ContextKeyUserName).(string))
+	user := ctx.Value(auth.ContextKeyUserName).(string)
+	stacks := getAllStacks(ctx, user, true)
 
 	return stacks, nil
 }
@@ -134,8 +132,8 @@ func execDestroy(ctx context.Context, sr stackResource, deletionParam *DeletionP
 	return nil
 }
 
-func storeStack(stack *Stack, user string) (updatedList []byte, err error) {
-	stackList := getAllStacks(user)
+func storeStack(ctx context.Context, stack *Stack, user string) (updatedList []byte, err error) {
+	stackList := getAllStacks(ctx, user, false)
 	updatedStackList := append(stackList, *stack)
 
 	if err := storage.Store.Stack.Set(user, updatedStackList); err != nil {
@@ -151,8 +149,8 @@ func storeStack(stack *Stack, user string) (updatedList []byte, err error) {
 	return updatedList, nil
 }
 
-func removeStack(stack *Stack, user string) (updatedList []byte, err error) {
-	stackList := getAllStacks(user)
+func removeStack(ctx context.Context, stack *Stack, user string) (updatedList []byte, err error) {
+	stackList := getAllStacks(ctx, user, false)
 	if len(stackList) == 0 {
 		return updatedList, nil
 	}
@@ -179,15 +177,39 @@ func removeStack(stack *Stack, user string) (updatedList []byte, err error) {
 	return updatedList, nil
 }
 
-func getAllStacks(user string) []Stack {
+func getAllStacks(ctx context.Context, user string, includeOrgs bool) []Stack {
 	stackList, _ := storage.Store.Stack.Get(user)
+
+	if includeOrgs {
+		stackList = addOrgaRepos(ctx, stackList)
+	}
 
 	return stackList
 }
 
-func getStackByID(stackID string, user string) Stack {
+func addOrgaRepos(ctx context.Context, existingStackList []storage.StackModel) []storage.StackModel {
+	client := auth.AuthenticateUser(ctx.Value(auth.ContextKeyToken).(string))
+	userName := auth.AuthenticateUser(ctx.Value(auth.ContextKeyUserName).(string))
+
+	orgas, _, err := client.Organizations.ListOrgMemberships(ctx, &github.ListOrgMembershipsOptions{
+		ListOptions: github.ListOptions{},
+	})
+	if err != nil {
+		log.Println("could not fetch Orga for user", userName)
+		return existingStackList
+	}
+
+	for _, org := range orgas {
+		orgStacks, _ := storage.Store.Stack.Get(*org.Organization.Login)
+		existingStackList = append(existingStackList, orgStacks...)
+	}
+
+	return existingStackList
+}
+
+func getStackByID(ctx context.Context, user string, stackID string) Stack {
 	stack := Stack{}
-	stackListArr := getAllStacks(user)
+	stackListArr := getAllStacks(ctx, user, false)
 
 	for _, s := range stackListArr {
 		if s.ID != stackID {

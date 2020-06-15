@@ -100,9 +100,15 @@ func fetchReposJSON(ctx context.Context) []byte {
 		fmt.Println(err)
 	}
 
-	repoList := []string{}
+	repoList := []*storage.RepoModel{}
 	for _, r := range reps {
-		repoList = append(repoList, *r.Name)
+		newRepo := &storage.RepoModel{
+			Name:  *r.Name,
+			Owner: *r.Owner.Login,
+			Type:  *r.Owner.Type,
+		}
+
+		repoList = append(repoList, newRepo)
 	}
 
 	reposJSON, _ := json.Marshal(repoList)
