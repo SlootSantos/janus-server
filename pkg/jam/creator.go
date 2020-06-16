@@ -52,12 +52,12 @@ func (j *Creator) Build(ctx context.Context, config StackCreateConfig) ([]byte, 
 	return updatedList, nil
 }
 
-func (j *Creator) Delete(ctx context.Context, stackID string) ([]byte, error) {
-	user := ctx.Value(auth.ContextKeyUserName).(string)
+func (j *Creator) Delete(ctx context.Context, stackConf StackDestroyConfig) ([]byte, error) {
+	owner := stackConf.Repository.Owner
 
-	stack := getStackByID(ctx, user, stackID)
+	stack := getStackByID(ctx, owner, stackConf.ID)
 	if stack == (Stack{}) {
-		err := errors.New("No Stack ID: " + stackID + " for User: " + user)
+		err := errors.New("No Stack ID: " + stackConf.ID + " for User: " + owner)
 		log.Println(err.Error())
 
 		return []byte{}, err
@@ -66,7 +66,7 @@ func (j *Creator) Delete(ctx context.Context, stackID string) ([]byte, error) {
 	deletionParam := DeletionParam(stack)
 	j.destroyStack(ctx, &deletionParam)
 
-	updatedList, err := removeStack(ctx, &stack, user)
+	updatedList, err := removeStack(ctx, &stack, owner)
 	if err != nil {
 		log.Println(err)
 		return []byte{}, err
@@ -200,6 +200,7 @@ func addOrgaRepos(ctx context.Context, existingStackList []storage.StackModel) [
 	}
 
 	for _, org := range orgas {
+		log.Println("ORG", *org.Organization.ID)
 		orgStacks, _ := storage.Store.Stack.Get(*org.Organization.Login)
 		existingStackList = append(existingStackList, orgStacks...)
 	}

@@ -1,14 +1,17 @@
 package storage
 
-import "github.com/aws/aws-sdk-go/aws/session"
+import (
+	"github.com/aws/aws-sdk-go/aws/session"
+)
 
 type BuildModel struct {
 	Latest string `json:"latest"`
 }
 type Storage struct {
-	Stack *stack
-	User  *user
-	Repo  *repo
+	User         *user
+	Repo         *repo
+	Stack        *stack
+	Organization *organization
 }
 
 type db struct {
@@ -16,23 +19,28 @@ type db struct {
 	dynamoTable string
 }
 
-const stacks = "Stacks"
-const users = "Users"
-const repos = "Repos"
+const (
+	users         = "Users"
+	repos         = "Repos"
+	stacks        = "Stacks"
+	organizations = "Organizations"
+)
 
 var databasesMap = map[string]db{
-	users:  {1, users},
-	stacks: {2, stacks},
-	repos:  {3, repos},
+	users:         {1, users},
+	stacks:        {2, stacks},
+	repos:         {3, repos},
+	organizations: {4, organizations},
 }
 
 var Store *Storage
 
 func Init(sess *session.Session) *Storage {
 	store := &Storage{
-		Stack: newStackDB(databasesMap[stacks], sess),
-		User:  newUserDB(databasesMap[users], sess),
-		Repo:  newRepoDB(databasesMap[repos], sess),
+		User:         newUserDB(databasesMap[users], sess),
+		Repo:         newRepoDB(databasesMap[repos], sess),
+		Stack:        newStackDB(databasesMap[stacks], sess),
+		Organization: newOrgaDB(databasesMap[organizations], sess),
 	}
 
 	Store = store

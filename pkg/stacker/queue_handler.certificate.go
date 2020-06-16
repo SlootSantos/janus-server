@@ -69,10 +69,8 @@ func updateCDNCertificate(message queue.QueueMessage) (ack bool) {
 		}
 
 		cdnConf = &cdn.CreateCDNParams{
-			Domain:  user.ThirdPartyAWS.Domain,
-			CertARN: os.Getenv("DOMAIN_CERT_ARN"),
-			// HostedZoneID: os.Getenv("DOMAIN_ZONE_ID"),
-			HostedZoneID: "/hostedzone/Z0475209DXX3SXD7W99L",
+			Domain:       user.ThirdPartyAWS.Domain,
+			HostedZoneID: user.ThirdPartyAWS.HostedZoneID,
 			Session:      awsSess,
 		}
 	}

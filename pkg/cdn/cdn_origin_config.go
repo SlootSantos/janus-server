@@ -6,12 +6,13 @@ import (
 )
 
 type constructDistroConfigInput struct {
-	originAccessID string
-	subdomain      string
 	certificateARN string
+	originAccessID string
+	isThirdParty   bool
+	subdomain      string
+	lambdaARN      string
 	bucketID       string
 	stackID        string
-	isThirdParty   bool
 }
 
 const (
@@ -35,7 +36,7 @@ func (c *CDN) constructStandardDistroConfig(input *constructDistroConfigInput) *
 			// Aliases:           constructAliases(input.subdomain),
 			Origins: constructS3Origins(input.bucketID, input.originAccessID),
 			// ViewerCertificate:    constructCertificate(input.certificateARN),
-			DefaultCacheBehavior: constructDefaultCacheBehavior(input.bucketID, input.isThirdParty),
+			DefaultCacheBehavior: constructDefaultCacheBehavior(input.bucketID, input.lambdaARN),
 			CustomErrorResponses: constructErrorBehavior(),
 		},
 	}
@@ -94,13 +95,13 @@ func constructS3Origins(bucketID string, originAccessID string) *cloudfront.Orig
 	}
 }
 
-func constructDefaultCacheBehavior(bucketID string, isThirdParty bool) *cloudfront.DefaultCacheBehavior {
+func constructDefaultCacheBehavior(bucketID string, lambdaARN string) *cloudfront.DefaultCacheBehavior {
 	return &cloudfront.DefaultCacheBehavior{
 		MinTTL:                     aws.Int64(10),
 		Compress:                   aws.Bool(true),
 		TargetOriginId:             aws.String(cdnPrefix + bucketID),
 		ViewerProtocolPolicy:       aws.String(cacheProtocolPolicy),
-		LambdaFunctionAssociations: blueGreenLambdaFuncConfig(isThirdParty),
+		LambdaFunctionAssociations: blueGreenLambdaFuncConfig(lambdaARN),
 		TrustedSigners: &cloudfront.TrustedSigners{
 			Quantity: aws.Int64(0),
 			Enabled:  aws.Bool(false),

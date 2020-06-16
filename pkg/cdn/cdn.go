@@ -45,6 +45,7 @@ type CreateCDNParams struct {
 	Domain       string
 	HostedZoneID string
 	CertARN      string
+	LambdaARN    string
 	Session      *session.Session
 	Queue        *queue.Q
 }
@@ -53,6 +54,7 @@ type cdnConfig struct {
 	domain       string
 	hostedZoneID string
 	certARN      string
+	lambdaARN    string
 }
 
 // New creates a new CDN creator
@@ -68,6 +70,7 @@ func New(params *CreateCDNParams) *CDN {
 			domain:       params.Domain,
 			hostedZoneID: params.HostedZoneID,
 			certARN:      params.CertARN,
+			lambdaARN:    params.LambdaARN,
 		},
 	}
 

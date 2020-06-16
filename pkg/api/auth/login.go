@@ -87,7 +87,7 @@ func getUser(req *http.Request) (*github.User, string) {
 }
 
 func storeUser(gUser *github.User, token string) error {
-	user := &storage.UserModel{User: *gUser.Login, Token: token}
+	user := &storage.UserModel{User: *gUser.Login, Token: token, Type: storage.TypeUser}
 
 	err := storage.Store.User.Set(*gUser.Login, user)
 	return err

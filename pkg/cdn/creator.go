@@ -21,11 +21,16 @@ const cdnS3OriginSuffix = ".s3.us-east-1.amazonaws.com"
 // Create generates a Cloudfront-Distro at AWS
 func (c *CDN) Create(ctx context.Context, param *jam.CreationParam, out *jam.OutputParam) (string, error) {
 	isThirdParty := ctx.Value(auth.ContextKeyIsThirdParty).(bool)
+	owner := param.Repo.Owner
 
 	bucketID := param.Bucket.ID
 	subdomain := param.CDN.Subdomain
 
-	accessID, err := c.createOrginAccess(ctx, bucketID)
+	createOrgConfig := &createOriginConfig{
+		bucketID: bucketID,
+		owner:    owner,
+	}
+	accessID, err := c.createOrginAccess(ctx, createOrgConfig)
 	if err != nil {
 		return "", err
 	}
@@ -36,6 +41,7 @@ func (c *CDN) Create(ctx context.Context, param *jam.CreationParam, out *jam.Out
 		stackID:        param.ID,
 		subdomain:      subdomain,
 		isThirdParty:   isThirdParty,
+		lambdaARN:      c.config.lambdaARN,
 	}
 
 	config := c.constructStandardDistroConfig(distroConfigInput)
@@ -44,7 +50,13 @@ func (c *CDN) Create(ctx context.Context, param *jam.CreationParam, out *jam.Out
 		log.Println("could not create Cloudfront distro", err)
 	}
 
-	certARN := c.issueCertificate(ctx, subdomain, *createDistroOuput.Distribution.Id)
+	issueCertConfig := &issueCertificateConfig{
+		subdomain: subdomain,
+		distroID:  *createDistroOuput.Distribution.Id,
+		owner:     owner,
+	}
+
+	certARN := c.issueCertificate(ctx, issueCertConfig)
 	out.CDN = &jam.StackCDN{
 		CustomDomain:   subdomain + "." + c.config.domain,
 		Subdomain:      subdomain,
@@ -63,6 +75,7 @@ func (c *CDN) Create(ctx context.Context, param *jam.CreationParam, out *jam.Out
 // Destroy deletes a Cloudfront-Distro at AWS
 func (c *CDN) Destroy(ctx context.Context, param *jam.DeletionParam) error {
 	isThirdParty := ctx.Value(auth.ContextKeyIsThirdParty).(bool)
+	owner := param.Repo.Owner
 
 	log.Println("START: destroying CDN")
 
@@ -103,7 +116,7 @@ func (c *CDN) Destroy(ctx context.Context, param *jam.DeletionParam) error {
 			},
 			queue.MessageCommonUser: &sqs.MessageAttributeValue{
 				DataType:    aws.String("String"),
-				StringValue: aws.String(ctx.Value(auth.ContextKeyUserName).(string)),
+				StringValue: aws.String(owner),
 			},
 			queue.MessageCertificateARN: &sqs.MessageAttributeValue{
 				DataType:    aws.String("String"),

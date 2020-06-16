@@ -16,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/aws/aws-sdk-go/service/route53"
 )
 
 func (s *Stacker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -49,7 +50,11 @@ func (s *Stacker) handlePOST(w http.ResponseWriter, req *http.Request) {
 
 	ctx := context.WithValue(req.Context(), auth.ContextKeyIsThirdParty, config.IsThirdParty)
 
-	creator, err := s.launchCreator(ctx, config.IsThirdParty)
+	creator, err := s.launchCreator(ctx, &launchParamOptions{
+		isThirdParty: config.IsThirdParty,
+		ownerType:    config.Repository.Type,
+		ownerName:    config.Repository.Owner,
+	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -64,7 +69,9 @@ func (s *Stacker) handlePOST(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *Stacker) handleGET(w http.ResponseWriter, req *http.Request) {
-	creator, err := s.launchCreator(req.Context(), false)
+	creator, err := s.launchCreator(req.Context(), &launchParamOptions{
+		isThirdParty: false,
+	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -94,12 +101,16 @@ func (s *Stacker) handleDELETE(w http.ResponseWriter, req *http.Request) {
 
 	ctx := context.WithValue(req.Context(), auth.ContextKeyIsThirdParty, config.IsThirdParty)
 
-	creator, err := s.launchCreator(ctx, config.IsThirdParty)
+	creator, err := s.launchCreator(ctx, &launchParamOptions{
+		isThirdParty: config.IsThirdParty,
+		ownerType:    config.Repository.Type,
+		ownerName:    config.Repository.Owner,
+	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	newlist, err := creator.Delete(ctx, config.ID)
+	newlist, err := creator.Delete(ctx, config)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
@@ -148,8 +159,9 @@ func SetThirdPartyAWSCredentials(w http.ResponseWriter, req *http.Request) {
 		Domain:    creds.Domain,
 	}
 
-	lambdaARN, _ := setupThirdPartyAccount(req.Context(), user.ThirdPartyAWS)
-	user.ThirdPartyAWS.LambdaARN = lambdaARN
+	thirdpartyAccountOut, _ := SetupThirdPartyAccount(req.Context(), user.ThirdPartyAWS)
+	user.ThirdPartyAWS.LambdaARN = thirdpartyAccountOut.LambdaARN
+	user.ThirdPartyAWS.HostedZoneID = thirdpartyAccountOut.HostedZoneID
 
 	err = storage.Store.User.Set(req.Context().Value(auth.ContextKeyUserName).(string), user)
 	if err != nil {
@@ -161,11 +173,24 @@ func SetThirdPartyAWSCredentials(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func setupThirdPartyAccount(ctx context.Context, thirdPartyCreds *storage.ThirdPartyAWS) (string, error) {
-	thirdPartySession, _ := session.AWSSessionThirdParty(thirdPartyCreds.AccessKey, thirdPartyCreds.SecretKey)
-	i := iam.New(thirdPartySession)
+type setupThirdPartyOutput struct {
+	HostedZoneID string
+	LambdaARN    string
+}
 
-	roleName := "role-with-policy-11"
+func SetupThirdPartyAccount(ctx context.Context, thirdPartyCreds *storage.ThirdPartyAWS) (*setupThirdPartyOutput, error) {
+	thirdPartySession, _ := session.AWSSessionThirdParty(thirdPartyCreds.AccessKey, thirdPartyCreds.SecretKey)
+
+	r53 := route53.New(thirdPartySession)
+	zones, _ := r53.ListHostedZonesByName(&route53.ListHostedZonesByNameInput{
+		DNSName: &thirdPartyCreds.Domain,
+	})
+
+	zoneID := *zones.HostedZones[0].Id
+
+	i := iam.New(thirdPartySession)
+	roleName := "stackers-cdn-routing-lambda-policy"
+	functionName := "stackers-cdn-routing-origin-lambda"
 	var roleARN string
 	role, err := i.CreateRole(&iam.CreateRoleInput{
 		Path:                     aws.String("/service-role/"),
@@ -183,7 +208,7 @@ func setupThirdPartyAccount(ctx context.Context, thirdPartyCreds *storage.ThirdP
 				roleARN = *r.Role.Arn
 			default:
 				log.Println("Could not handle AWS err", err.Error())
-				return "", fmt.Errorf("Can not create role for AWS account: %s", err.Error())
+				return nil, fmt.Errorf("Can not create role for AWS account: %s", err.Error())
 			}
 		}
 	} else {
@@ -200,7 +225,7 @@ func setupThirdPartyAccount(ctx context.Context, thirdPartyCreds *storage.ThirdP
 	var functionARN string
 	lam := lambda.New(thirdPartySession)
 	res, err := lam.CreateFunction(&lambda.CreateFunctionInput{
-		FunctionName: aws.String("stackers-handler-routing-2"),
+		FunctionName: aws.String(functionName),
 		Handler:      aws.String("index.handler"),
 		Runtime:      aws.String("nodejs12.x"),
 		Role:         aws.String(roleARN),
@@ -213,45 +238,73 @@ func setupThirdPartyAccount(ctx context.Context, thirdPartyCreds *storage.ThirdP
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			case lambda.ErrCodeResourceConflictException:
-				log.Printf("User: already has function named: %s", "stackers-handler-routing-2")
+				log.Printf("User: already has function named: %s", functionName)
 				existingFunction, _ := lam.GetFunction(&lambda.GetFunctionInput{
-					FunctionName: aws.String("stackers-handler-routing-2"),
+					FunctionName: aws.String(functionName),
 				})
-				functionARN = *existingFunction.Configuration.FunctionArn
+
+				functionARN = *existingFunction.Configuration.FunctionArn + ":1"
 			default:
 				log.Println("Could not handle AWS err", err.Error())
-				return "", fmt.Errorf("Can not create role for AWS account: %s", err.Error())
+				return nil, fmt.Errorf("Can not create role for AWS account: %s", err.Error())
 			}
 		}
+
 	} else {
-		functionARN = *res.FunctionArn
-		lam.PublishVersion(&lambda.PublishVersionInput{
-			FunctionName: aws.String(functionARN),
+		_, err := lam.PublishVersion(&lambda.PublishVersionInput{
+			FunctionName: aws.String(*res.FunctionArn),
 			Description:  aws.String("Stackers.io Routing Lambda Function"),
 		})
+		if err != nil {
+			log.Println("Could not publish function", err.Error())
+			return nil, err
+		}
+
+		functionARN = *res.FunctionArn + ":1"
 	}
 
-	return functionARN, nil
+	out := &setupThirdPartyOutput{
+		LambdaARN:    functionARN,
+		HostedZoneID: zoneID,
+	}
+
+	return out, nil
 }
 
-func setLaunchParam(ctx context.Context, isThirdParty bool) (*launchParam, error) {
+type launchParamOptions struct {
+	isThirdParty bool
+	ownerType    string
+	ownerName    string
+}
+
+func setLaunchParam(ctx context.Context, options *launchParamOptions) (*launchParam, error) {
 	creatorParam := launchParam{}
 	username := ctx.Value(auth.ContextKeyUserName).(string)
 
-	if isThirdParty {
+	if options.ownerType == storage.TypeOrganization {
+		username = options.ownerName
+	}
+
+	if options.isThirdParty {
 		user, err := storage.Store.User.Get(username)
 		if err != nil {
 			return nil, err
 		}
 
-		creatorParam = launchParam{
-			hasOwnCreds: true,
-			creds: awsCredentials{
-				accessKey: user.ThirdPartyAWS.AccessKey,
-				secretKey: user.ThirdPartyAWS.SecretKey,
-			},
-			domain: user.ThirdPartyAWS.Domain,
+		creds := awsCredentials{
+			accessKey: user.ThirdPartyAWS.AccessKey,
+			secretKey: user.ThirdPartyAWS.SecretKey,
 		}
+
+		creatorParam = launchParam{
+			hasOwnCreds:  true,
+			creds:        creds,
+			domain:       user.ThirdPartyAWS.Domain,
+			lambdaARN:    user.ThirdPartyAWS.LambdaARN,
+			hostedZoneID: user.ThirdPartyAWS.HostedZoneID,
+		}
+
+		log.Printf("creatorParam %+v", creatorParam)
 	}
 
 	return &creatorParam, nil

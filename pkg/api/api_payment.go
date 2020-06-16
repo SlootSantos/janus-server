@@ -39,7 +39,7 @@ func setupPayment() bool {
 
 		user, _ := storage.Store.User.Get(userName)
 		user.IsPro = true
-		user.Billing = &storage.UserBillding{
+		user.Billing = &storage.UserBilling{
 			SubscriptionID: s.Subscription.ID,
 		}
 

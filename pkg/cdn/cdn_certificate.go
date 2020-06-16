@@ -17,8 +17,19 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
-func (c *CDN) issueCertificate(ctx context.Context, subdomain string, distroID string) string {
-	fullyQualifiedDomain := subdomain + "." + c.config.domain
+type issueCertificateConfig struct {
+	subdomain string
+	distroID  string
+	owner     string
+}
+
+type createCertificateDNSConfig struct {
+	*issueCertificateConfig
+	certifcateARN string
+}
+
+func (c *CDN) issueCertificate(ctx context.Context, config *issueCertificateConfig) string {
+	fullyQualifiedDomain := config.subdomain + "." + c.config.domain
 
 	res, err := c.acm.RequestCertificate(&acm.RequestCertificateInput{
 		DomainName:       aws.String(fullyQualifiedDomain),
@@ -39,7 +50,11 @@ func (c *CDN) issueCertificate(ctx context.Context, subdomain string, distroID s
 	go func() {
 		for {
 			time.Sleep(time.Second * 5)
-			done := c.createCertificateDNSRecords(ctx, *res.CertificateArn, distroID, subdomain)
+			certDNSConfig := &createCertificateDNSConfig{
+				config,
+				*res.CertificateArn,
+			}
+			done := c.createCertificateDNSRecords(ctx, certDNSConfig)
 			if done {
 				break
 			}
@@ -49,13 +64,13 @@ func (c *CDN) issueCertificate(ctx context.Context, subdomain string, distroID s
 	return *res.CertificateArn
 }
 
-func (c *CDN) createCertificateDNSRecords(ctx context.Context, certARN string, distroID string, subdomain string) bool {
+func (c *CDN) createCertificateDNSRecords(ctx context.Context, config *createCertificateDNSConfig) bool {
 	rr, err := c.acm.DescribeCertificate(&acm.DescribeCertificateInput{
-		CertificateArn: &certARN,
+		CertificateArn: &config.certifcateARN,
 	})
 	if err != nil {
 		log.Println("Error describing certificate")
-		panic(err.Error())
+		return false
 	}
 
 	if len(rr.Certificate.DomainValidationOptions) == 0 {
@@ -112,19 +127,19 @@ func (c *CDN) createCertificateDNSRecords(ctx context.Context, certARN string, d
 	c.queue.Certificate.Push(queue.QueueMessage{
 		queue.MessageCertificateARN: &sqs.MessageAttributeValue{
 			DataType:    aws.String("String"),
-			StringValue: &certARN,
+			StringValue: &config.certifcateARN,
 		},
 		queue.MessageCertificateDistroID: &sqs.MessageAttributeValue{
 			DataType:    aws.String("String"),
-			StringValue: aws.String(distroID),
+			StringValue: aws.String(config.distroID),
 		},
 		queue.MessageCertificateSubDomain: &sqs.MessageAttributeValue{
 			DataType:    aws.String("String"),
-			StringValue: aws.String(subdomain),
+			StringValue: aws.String(config.subdomain),
 		},
 		queue.MessageCommonUser: &sqs.MessageAttributeValue{
 			DataType:    aws.String("String"),
-			StringValue: aws.String(ctx.Value(auth.ContextKeyUserName).(string)),
+			StringValue: aws.String(config.owner),
 		},
 		queue.MessageCommonIsThirdParty: &sqs.MessageAttributeValue{
 			DataType:    aws.String("String"),
@@ -136,9 +151,6 @@ func (c *CDN) createCertificateDNSRecords(ctx context.Context, certARN string, d
 }
 
 func (c *CDN) HandleQueueMessageCertificate(distroID string, certificateARN string, subdomain string) (ack bool) {
-	log.Println("RECEIVING CERT UPDATE MESSAGE")
-	log.Println(distroID, certificateARN, subdomain)
-
 	getDistroInput := &cloudfront.GetDistributionInput{
 		Id: aws.String(distroID),
 	}
@@ -162,9 +174,13 @@ func (c *CDN) HandleQueueMessageCertificate(distroID string, certificateARN stri
 	_, err = c.cdn.UpdateDistribution(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			fmt.Println(aerr.Error())
-
-			return false
+			switch aerr.Code() {
+			case cloudfront.ErrCodeInvalidViewerCertificate:
+				return ack
+			default:
+				log.Println("Could not handle AWS err", err.Error())
+				return ack
+			}
 		}
 	}
 
@@ -173,11 +189,9 @@ func (c *CDN) HandleQueueMessageCertificate(distroID string, certificateARN stri
 }
 
 func (c *CDN) destroyCertificate(certARN string) error {
-	res, err := c.acm.DeleteCertificate(&acm.DeleteCertificateInput{
+	_, err := c.acm.DeleteCertificate(&acm.DeleteCertificateInput{
 		CertificateArn: aws.String(certARN),
 	})
-	log.Printf("res %+v", res)
-	log.Printf("err %+v", err)
 
 	return err
 }

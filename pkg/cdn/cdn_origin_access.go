@@ -12,11 +12,16 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
-func (c *CDN) createOrginAccess(ctx context.Context, bucketID string) (*string, error) {
+type createOriginConfig struct {
+	bucketID string
+	owner    string
+}
+
+func (c *CDN) createOrginAccess(ctx context.Context, config *createOriginConfig) (*string, error) {
 	accessID, err := c.cdn.CreateCloudFrontOriginAccessIdentity(&cloudfront.CreateCloudFrontOriginAccessIdentityInput{
 		CloudFrontOriginAccessIdentityConfig: &cloudfront.OriginAccessIdentityConfig{
-			Comment:         aws.String("source-cdn-" + bucketID),
-			CallerReference: aws.String(bucketID),
+			Comment:         aws.String("source-cdn-" + config.bucketID),
+			CallerReference: aws.String(config.bucketID),
 		},
 	})
 	if err != nil {
@@ -29,7 +34,7 @@ func (c *CDN) createOrginAccess(ctx context.Context, bucketID string) (*string, 
 	c.queue.AccessID.Push(queue.QueueMessage{
 		queue.MessageDestroyBucketID: &sqs.MessageAttributeValue{
 			DataType:    aws.String("String"),
-			StringValue: &bucketID,
+			StringValue: &config.bucketID,
 		},
 		queue.MessageDestroyAccessID: &sqs.MessageAttributeValue{
 			DataType:    aws.String("String"),
@@ -37,7 +42,7 @@ func (c *CDN) createOrginAccess(ctx context.Context, bucketID string) (*string, 
 		},
 		queue.MessageCommonUser: &sqs.MessageAttributeValue{
 			DataType:    aws.String("String"),
-			StringValue: aws.String(ctx.Value(auth.ContextKeyUserName).(string)),
+			StringValue: aws.String(config.owner),
 		},
 		queue.MessageCommonIsThirdParty: &sqs.MessageAttributeValue{
 			DataType:    aws.String("String"),

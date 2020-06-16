@@ -2,7 +2,6 @@ package cdn
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/route53"
@@ -26,7 +25,6 @@ func (c *CDN) destroyDNSRecord(distroDomain string, subdomain string) {
 }
 
 func (c *CDN) handleCommonRoute53Change(action string, subdomain string, target string) {
-	log.Println("SUBDOMAIN IN DNS", subdomain)
 	recordParams := &route53.ChangeResourceRecordSetsInput{
 		ChangeBatch: &route53.ChangeBatch{
 			Changes: []*route53.Change{
@@ -109,7 +107,6 @@ func (c *CDN) handleCommonRoute53Change(action string, subdomain string, target 
 			Comment: aws.String("Sample update."),
 		},
 		HostedZoneId: aws.String(c.config.hostedZoneID),
-		// HostedZoneId: aws.String("/hostedzone/" + os.Getenv("DOMAIN_ZONE_ID")),
 	}
 
 	_, err := c.dns.ChangeResourceRecordSets(recordParams)

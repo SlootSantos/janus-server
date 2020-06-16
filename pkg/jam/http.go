@@ -8,6 +8,7 @@ type StackCreateConfig struct {
 
 type StackDestroyConfig struct {
 	ID           string
+	Repository   StackRepo
 	IsThirdParty bool
 }
 

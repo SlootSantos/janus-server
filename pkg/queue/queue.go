@@ -67,14 +67,15 @@ func New(sess *session.Session) Q {
 }
 
 func (q *Queue) Push(message QueueMessage) {
-	res, err := q.sqs.SendMessage(&sqs.SendMessageInput{
+	_, err := q.sqs.SendMessage(&sqs.SendMessageInput{
 		DelaySeconds:      aws.Int64(10),
 		MessageAttributes: message,
 		MessageBody:       aws.String("."),
 		QueueUrl:          &q.url,
 	})
-
-	log.Println(res, err)
+	if err != nil {
+		log.Println("Could not push message to queue", err.Error())
+	}
 }
 
 func (q *Queue) Pull() {
@@ -102,9 +103,8 @@ func (q *Queue) pull() {
 		VisibilityTimeout:   aws.Int64(q.visibilityTimeout),
 		WaitTimeSeconds:     aws.Int64(20),
 	})
-
 	if err != nil {
-		log.Println("Error", err)
+		log.Println("Could not pull from SQS", err.Error())
 		return
 	}
 
@@ -124,9 +124,8 @@ func (q *Queue) pull() {
 			QueueUrl:      &q.url,
 			ReceiptHandle: m.ReceiptHandle,
 		})
-
 		if err != nil {
-			fmt.Println("Delete Error", err)
+			fmt.Println("Deleting Message from SQS failed", err.Error())
 			return
 		}
 	}

@@ -7,16 +7,7 @@ import (
 
 const lambdaEventOriginReq = "origin-request"
 
-const lambdaFuncARN = "arn:aws:lambda:us-east-1:976589619057:function:janus-exmaple-redirect:34"              // => env?
-const lambdaFuncARNThirdParty = "arn:aws:lambda:us-east-1:108151951856:function:stackers-handler-routing-2:1" // => env?
-
-func blueGreenLambdaFuncConfig(isThirdParty bool) *cloudfront.LambdaFunctionAssociations {
-	lambdaARN := lambdaFuncARN
-
-	if isThirdParty {
-		lambdaARN = lambdaFuncARNThirdParty
-	}
-
+func blueGreenLambdaFuncConfig(lambdaARN string) *cloudfront.LambdaFunctionAssociations {
 	return &cloudfront.LambdaFunctionAssociations{
 		Items: []*cloudfront.LambdaFunctionAssociation{
 			{

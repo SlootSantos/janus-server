@@ -21,9 +21,11 @@ type Stacker struct {
 }
 
 type launchParam struct {
-	hasOwnCreds bool
-	creds       awsCredentials
-	domain      string
+	hasOwnCreds  bool
+	creds        awsCredentials
+	domain       string
+	lambdaARN    string
+	hostedZoneID string
 }
 
 type awsCredentials struct {
@@ -44,21 +46,23 @@ func New(defaultSession *aws.Session) *Stacker {
 	return stacker
 }
 
-func (s *Stacker) launchCreator(ctx context.Context, isThirdParty bool) (*jam.Creator, error) {
-	param, err := setLaunchParam(ctx, isThirdParty)
+func (s *Stacker) launchCreator(ctx context.Context, launchParamOps *launchParamOptions) (*jam.Creator, error) {
+	param, err := setLaunchParam(ctx, launchParamOps)
+
 	if err != nil {
 		return nil, err
 	}
 
-	if !param.hasOwnCreds || !isThirdParty {
+	if !param.hasOwnCreds || !launchParamOps.isThirdParty {
 		return s._defaultCreator, nil
 	}
 
 	awsSess, _ := session.AWSSessionThirdParty(param.creds.accessKey, param.creds.secretKey)
 	bucket := bucket.New(awsSess, &s.queue)
 	cloudfront := cdn.New(&cdn.CreateCDNParams{
-		HostedZoneID: "/hostedzone/Z0475209DXX3SXD7W99L",
+		HostedZoneID: param.hostedZoneID,
 		CertARN:      os.Getenv("DOMAIN_CERT_ARN"),
+		LambdaARN:    param.lambdaARN,
 		Session:      awsSess,
 		Domain:       param.domain,
 		Queue:        &s.queue,
@@ -78,6 +82,7 @@ func setupDefaultCreator(defaultSession *aws.Session, s *Stacker) {
 	cloudfront := cdn.New(&cdn.CreateCDNParams{
 		HostedZoneID: os.Getenv("DOMAIN_ZONE_ID"),
 		CertARN:      os.Getenv("DOMAIN_CERT_ARN"),
+		LambdaARN:    "arn:aws:lambda:us-east-1:976589619057:function:janus-exmaple-redirect:34",
 		Session:      defaultSession,
 		Domain:       os.Getenv("DOMAIN_HOST"),
 		Queue:        &s.queue,

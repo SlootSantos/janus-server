@@ -13,18 +13,20 @@ type UserModel struct {
 	User          string `json:"user"`
 	Token         string `json:"token"`
 	IsPro         bool   `json:"isPro"`
-	Billing       *UserBillding
+	Type          string `json:"type"`
+	Billing       *UserBilling
 	ThirdPartyAWS *ThirdPartyAWS
 }
 
 type ThirdPartyAWS struct {
-	AccessKey string `json:"accessKey"`
-	SecretKey string `json:"secretKey"`
-	Domain    string `json:"domain"`
-	LambdaARN string `json:"lambdaARN"`
+	AccessKey    string `json:"accessKey"`
+	SecretKey    string `json:"secretKey"`
+	Domain       string `json:"domain"`
+	LambdaARN    string `json:"lambdaARN"`
+	HostedZoneID string `json:"hostedZoneId"`
 }
 
-type UserBillding struct {
+type UserBilling struct {
 	SubscriptionID string `json:"subscriptionId"`
 }
 
@@ -34,6 +36,10 @@ type user struct {
 }
 
 const dynamoUserPrimaryKey = "user"
+const (
+	TypeOrganization = "Organization"
+	TypeUser         = "User"
+)
 
 func newUserDB(db db, s *session.Session) *user {
 	return &user{

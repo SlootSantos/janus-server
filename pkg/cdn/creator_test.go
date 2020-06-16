@@ -8,6 +8,7 @@ import (
 	"github.com/SlootSantos/janus-server/pkg/api/auth"
 	"github.com/SlootSantos/janus-server/pkg/jam"
 	"github.com/SlootSantos/janus-server/pkg/queue"
+	"github.com/SlootSantos/janus-server/pkg/storage"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/acm"
 	"github.com/aws/aws-sdk-go/service/cloudfront"
@@ -194,7 +195,7 @@ func TestCDN_Create(t *testing.T) {
 }
 
 func TestCDN_Delete(t *testing.T) {
-	t.Run("should delete bucket", func(t *testing.T) {
+	t.Run("should delete cdn", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		cdnMock := NewMockcdnandler(ctrl)
 		dnsMock := NewMockdnshandler(ctrl)
@@ -217,6 +218,9 @@ func TestCDN_Delete(t *testing.T) {
 		input := &jam.DeletionParam{
 			CDN: &jam.StackCDN{
 				ID: "ADKQEAS",
+			},
+			Repo: &storage.RepoModel{
+				Owner: "Tester",
 			},
 		}
 
