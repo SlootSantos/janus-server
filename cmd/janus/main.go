@@ -13,6 +13,7 @@ import (
 )
 
 func main() {
+	log.Println("Starting Janus Backend")
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
