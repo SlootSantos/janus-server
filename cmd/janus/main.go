@@ -13,7 +13,6 @@ import (
 )
 
 func main() {
-	log.Println("Starting Janus Backend A G A I N")
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
@@ -29,22 +28,3 @@ func main() {
 	s := stacker.New(awsSess)
 	api.Start(s)
 }
-
-// func createDependendableJAMCreator() *jam.Creator {
-// 	log.Print("START: setting up dependencies")
-
-// 	awsSess, err := session.AWSSession()
-// 	if err != nil {
-// 		log.Fatal("could not authenticate against AWS", err)
-// 	}
-
-// 	q := queue.New(awsSess)
-// 	cdn := cdn.New(awsSess, &q)
-// 	bucket := bucket.New(awsSess, &q)
-// 	repo := repo.New()
-
-// 	storage.Init(awsSess)
-
-// 	log.Print("DONE: setting up dependencies")
-// 	return jam.New(bucket, cdn, repo)
-// }

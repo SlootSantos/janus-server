@@ -8,7 +8,7 @@ resource "aws_elastic_beanstalk_application" "janus_server" {
 resource "aws_elastic_beanstalk_environment" "janus-server-production" {
   name                = "janus-server-production"
   application         = aws_elastic_beanstalk_application.janus_server.name
-  solution_stack_name = "64bit Amazon Linux 2018.03 v2.20.2 running Multi-container Docker 19.03.6-ce (Generic)"
+  solution_stack_name = "64bit Amazon Linux 2018.03 v2.20.3 running Multi-container Docker 19.03.6-ce (Generic)"
 
   tags = {
     project = "janus"
