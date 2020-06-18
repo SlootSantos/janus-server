@@ -17,7 +17,7 @@
   "containerDefinitions": [
     {
       "name": "janus",
-      "image": "976589619057.dkr.ecr.us-east-1.amazonaws.com/janus/server",
+      "image": "__ACCOUNT_ID__.dkr.ecr.us-east-1.amazonaws.com/janus/server",
       "essential": true,
       "memory": 500,
       "environment": [],
