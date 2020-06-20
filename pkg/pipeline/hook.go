@@ -118,7 +118,7 @@ func HandleHook(w http.ResponseWriter, req *http.Request) {
 			awsSecrect := os.Getenv("PIPELINE_DEPLOYER_SECRET")
 
 			if stack.IsThirdParty {
-				user, err := storage.Store.User.Get(*e.Pusher.Login)
+				user, err := storage.Store.User.Get(*e.Repo.Owner.Name)
 				if err != nil {
 					log.Println("Cannot build container for", err.Error())
 					return

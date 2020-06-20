@@ -63,6 +63,7 @@ const (
 var _pipeline = Pipeline{}
 
 func Push(params ContainerRunParams) {
+	log.Printf("%+v", params)
 	_pipeline.queue = append(_pipeline.queue, &params)
 
 	if _pipeline.isBuilding {

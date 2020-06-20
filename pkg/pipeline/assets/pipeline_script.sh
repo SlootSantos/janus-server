@@ -5,10 +5,6 @@
 
 ENV_MAP="{\"dev_env\":\"dev\",\"stage_env\":\"stage\",\"prod_env\":\"prod\"}"
 
-echo "BRANCH IS: $STACKERS_BRANCH"
-echo "COMMIT IS: $STACKERS_COMMIT"
-echo "PR_ID IS: $STACKERS_PR_ID"
-
 
 echo -e "\n \n\x1B[40;38;5;82m Step \x1B[30;48;5;82m Cloning Repository \x1B[0m"
 git clone https://${OAUTH_TOKEN}:x-oauth-basic@github.com/${REPO_FULL}.git

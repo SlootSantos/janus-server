@@ -189,7 +189,7 @@ func getAllStacks(ctx context.Context, user string, includeOrgs bool) []Stack {
 
 func addOrgaRepos(ctx context.Context, existingStackList []storage.StackModel) []storage.StackModel {
 	client := auth.AuthenticateUser(ctx.Value(auth.ContextKeyToken).(string))
-	userName := auth.AuthenticateUser(ctx.Value(auth.ContextKeyUserName).(string))
+	userName := ctx.Value(auth.ContextKeyUserName).(string)
 
 	orgas, _, err := client.Organizations.ListOrgMemberships(ctx, &github.ListOrgMembershipsOptions{
 		ListOptions: github.ListOptions{},

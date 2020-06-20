@@ -52,10 +52,22 @@ resource "aws_ssm_parameter" "janus_sqs_destroy_cdn" {
        "project" = "janus"
    }
 }
+
 resource "aws_ssm_parameter" "janus_sqs_certificate" {
   name  = "/janus/env/production/SQS_URL_CERTIFICATE"
   type  = "String"
   value = aws_sqs_queue.Certificate.id
+  overwrite = true
+   tags = {
+       "env"     = "production"
+       "project" = "janus"
+   }
+}
+
+resource "aws_ssm_parameter" "janus_sqs_build" {
+  name  = "/janus/env/production/SQS_URL_BUILDS"
+  type  = "String"
+  value = aws_sqs_queue.Builds.id
   overwrite = true
    tags = {
        "env"     = "production"

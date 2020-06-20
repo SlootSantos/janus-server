@@ -122,9 +122,7 @@ func (s *Stacker) handleDELETE(w http.ResponseWriter, req *http.Request) {
 const RouteCredentialsPrefix = "/creds"
 
 type ThirdPartyAWSCredentials struct {
-	SecretKey string
-	AccessKey string
-	Domain    string
+	ThirdPartyAWS storage.ThirdPartyAWS
 }
 
 func SetThirdPartyAWSCredentials(w http.ResponseWriter, req *http.Request) {
@@ -141,7 +139,7 @@ func SetThirdPartyAWSCredentials(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if creds.AccessKey == "" || creds.SecretKey == "" || creds.Domain == "" {
+	if (creds.ThirdPartyAWS == storage.ThirdPartyAWS{}) || creds.ThirdPartyAWS.AccessKey == "" || creds.ThirdPartyAWS.SecretKey == "" || creds.ThirdPartyAWS.Domain == "" {
 		http.Error(w, "AccessKey or SecretKey or Domain missing in request", http.StatusBadRequest)
 		return
 	}
@@ -154,9 +152,9 @@ func SetThirdPartyAWSCredentials(w http.ResponseWriter, req *http.Request) {
 	}
 
 	user.ThirdPartyAWS = &storage.ThirdPartyAWS{
-		AccessKey: creds.AccessKey,
-		SecretKey: creds.SecretKey,
-		Domain:    creds.Domain,
+		AccessKey: creds.ThirdPartyAWS.AccessKey,
+		SecretKey: creds.ThirdPartyAWS.SecretKey,
+		Domain:    creds.ThirdPartyAWS.Domain,
 	}
 
 	thirdpartyAccountOut, _ := SetupThirdPartyAccount(req.Context(), user.ThirdPartyAWS)

@@ -2,9 +2,15 @@ package stacker
 
 import (
 	"context"
+	"log"
 	"os"
+	"time"
 
-	aws "github.com/aws/aws-sdk-go/aws/session"
+	aws "github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	awsSession "github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/service/lambda"
 
 	"github.com/SlootSantos/janus-server/pkg/bucket"
 	"github.com/SlootSantos/janus-server/pkg/cdn"
@@ -34,7 +40,7 @@ type awsCredentials struct {
 }
 
 // New does what ever
-func New(defaultSession *aws.Session) *Stacker {
+func New(defaultSession *awsSession.Session) *Stacker {
 	stacker := &Stacker{
 		repo:  repo.New(),
 		queue: queue.New(defaultSession),
@@ -77,16 +83,93 @@ func setupQueueHandlers(q *queue.Q) {
 	q.AccessID.SetListener(setAccessID)
 }
 
-func setupDefaultCreator(defaultSession *aws.Session, s *Stacker) {
+func setupDefaultCreator(defaultSession *awsSession.Session, s *Stacker) {
+	lambdaARN := setupLambdaFunc(defaultSession)
 	bucket := bucket.New(defaultSession, &s.queue)
 	cloudfront := cdn.New(&cdn.CreateCDNParams{
 		HostedZoneID: os.Getenv("DOMAIN_ZONE_ID"),
 		CertARN:      os.Getenv("DOMAIN_CERT_ARN"),
-		LambdaARN:    "arn:aws:lambda:us-east-1:976589619057:function:janus-exmaple-redirect:34",
+		LambdaARN:    lambdaARN,
 		Session:      defaultSession,
 		Domain:       os.Getenv("DOMAIN_HOST"),
 		Queue:        &s.queue,
 	})
 
 	s._defaultCreator = jam.New(bucket, cloudfront, s.repo)
+}
+
+func setupLambdaFunc(sess *awsSession.Session) string {
+	i := iam.New(sess)
+	roleName := "stackers-cdn-routing-lambda-policy"
+	functionName := "stackers-cdn-routing-origin-lambda"
+	var roleARN string
+	role, err := i.CreateRole(&iam.CreateRoleInput{
+		Path:                     aws.String("/service-role/"),
+		AssumeRolePolicyDocument: aws.String("{\"Version\": \"2012-10-17\",\"Statement\": [{\"Effect\": \"Allow\",\"Principal\": {\"Service\": [\"lambda.amazonaws.com\",\"edgelambda.amazonaws.com\"]},\"Action\": \"sts:AssumeRole\"}]}"),
+		RoleName:                 aws.String(roleName),
+	})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case iam.ErrCodeEntityAlreadyExistsException:
+				log.Printf("User: already has role named: %s", roleName)
+				r, _ := i.GetRole(&iam.GetRoleInput{
+					RoleName: aws.String(roleName),
+				})
+				roleARN = *r.Role.Arn
+			default:
+				panic("Could not handle AWS err" + err.Error())
+			}
+		}
+	} else {
+		roleARN = *role.Role.Arn
+		i.PutRolePolicy(&iam.PutRolePolicyInput{
+			PolicyName:     aws.String("stackers-lambda-exec-policy"),
+			PolicyDocument: aws.String("{\"Version\": \"2012-10-17\", \"Statement\": [ { \"Effect\": \"Allow\", \"Action\": [ \"logs:CreateLogGroup\", \"logs:CreateLogStream\", \"logs:PutLogEvents\" ], \"Resource\": [ \"arn:aws:logs:*:*:*\" ] } ] }"),
+			RoleName:       aws.String(roleName),
+		})
+
+		time.Sleep(time.Second * 60)
+	}
+
+	var functionARN string
+	lam := lambda.New(sess)
+	res, err := lam.CreateFunction(&lambda.CreateFunctionInput{
+		FunctionName: aws.String(functionName),
+		Handler:      aws.String("index.handler"),
+		Runtime:      aws.String("nodejs12.x"),
+		Role:         aws.String(roleARN),
+		Code: &lambda.FunctionCode{
+			S3Bucket: aws.String("stackers.io-lambda-public-functions"),
+			S3Key:    aws.String("exx.zip"),
+		},
+	})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case lambda.ErrCodeResourceConflictException:
+				log.Printf("User: already has function named: %s", functionName)
+				existingFunction, _ := lam.GetFunction(&lambda.GetFunctionInput{
+					FunctionName: aws.String(functionName),
+				})
+
+				functionARN = *existingFunction.Configuration.FunctionArn + ":1"
+			default:
+				panic("Could not handle AWS err" + err.Error())
+			}
+		}
+
+	} else {
+		_, err := lam.PublishVersion(&lambda.PublishVersionInput{
+			FunctionName: aws.String(*res.FunctionArn),
+			Description:  aws.String("Stackers.io Routing Lambda Function"),
+		})
+		if err != nil {
+			panic("Could not publish function" + err.Error())
+		}
+
+		functionARN = *res.FunctionArn + ":1"
+	}
+
+	return functionARN
 }

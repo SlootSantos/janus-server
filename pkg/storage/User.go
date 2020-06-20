@@ -18,6 +18,18 @@ type UserModel struct {
 	ThirdPartyAWS *ThirdPartyAWS
 }
 
+type AllowedUserSettings struct {
+	IsPro         bool   `json:"isPro"`
+	Type          string `json:"type"`
+	Name          string `json:"name"`
+	ThirdPartyAWS *ThirdPartyAWS
+}
+
+type AllowedOrgaSettings struct {
+	UserMemberStatus string `json:"userMemberStatus"`
+	AllowedUserSettings
+}
+
 type ThirdPartyAWS struct {
 	AccessKey    string `json:"accessKey"`
 	SecretKey    string `json:"secretKey"`

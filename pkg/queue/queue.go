@@ -67,6 +67,7 @@ func New(sess *session.Session) Q {
 }
 
 func (q *Queue) Push(message QueueMessage) {
+	// encrypt payload
 	_, err := q.sqs.SendMessage(&sqs.SendMessageInput{
 		DelaySeconds:      aws.Int64(10),
 		MessageAttributes: message,
@@ -91,6 +92,7 @@ func (q *Queue) Pull() {
 }
 
 func (q *Queue) pull() {
+	// decrypt
 	result, err := q.sqs.ReceiveMessage(&sqs.ReceiveMessageInput{
 		AttributeNames: []*string{
 			aws.String(sqs.MessageSystemAttributeNameSentTimestamp),

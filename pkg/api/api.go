@@ -14,6 +14,7 @@ import (
 	"github.com/SlootSantos/janus-server/pkg/organization"
 	"github.com/SlootSantos/janus-server/pkg/pipeline"
 	"github.com/SlootSantos/janus-server/pkg/repo"
+	"github.com/SlootSantos/janus-server/pkg/settings"
 	"github.com/SlootSantos/janus-server/pkg/stacker"
 	"github.com/buildkite/terminal-to-html"
 )
@@ -27,6 +28,7 @@ func Start(s *stacker.Stacker) {
 	http.HandleFunc(jam.RoutePrefix, auth.WithCredentials(s.ServeHTTP))
 	http.HandleFunc(stacker.RouteCredentialsPrefix, auth.WithCredentials(stacker.SetThirdPartyAWSCredentials))
 	http.HandleFunc("/organization", auth.WithCredentials(organization.HandleHTTP))
+	http.HandleFunc("/settings", auth.WithCredentials(settings.HandleHTTP))
 	http.HandleFunc(auth.LoginCheck, auth.HandleLoginCheck)
 	http.HandleFunc(auth.Callback, auth.HandleCallback)
 	http.HandleFunc(pipeline.Hook, pipeline.HandleHook)
