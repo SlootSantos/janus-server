@@ -61,7 +61,8 @@ func list(ctx context.Context) []byte {
 	reposStorage, err := storage.Store.Repo.Get(ctx.Value(auth.ContextKeyUserName).(string))
 
 	if err == redis.Nil {
-		log.Println("dayum empty", reposStorage)
+		log.Println("Empty Repo Redis Instance")
+		reposStorage = ""
 	}
 
 	if reposStorage == "" {
@@ -70,6 +71,8 @@ func list(ctx context.Context) []byte {
 		if err != nil {
 			log.Println(err)
 		}
+
+		return reposJSON
 	}
 
 	return []byte(reposStorage)

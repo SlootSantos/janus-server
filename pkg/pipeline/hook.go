@@ -66,7 +66,7 @@ func HandleHook(w http.ResponseWriter, req *http.Request) {
 					Commit:    *e.PullRequest.Head.SHA,
 					CDN:       stack.CDN.ID,
 					User:      *e.Repo.Owner.Login,
-					Token:     GetUserToken(*e.Repo.Owner.Login),
+					Token:     GetUserToken(*e.Sender.Login),
 					buildID:   buildID,
 					PrID:      strconv.Itoa(*e.Number),
 				})
@@ -79,6 +79,20 @@ func HandleHook(w http.ResponseWriter, req *http.Request) {
 				return
 			}
 
+			awsAccess := os.Getenv("PIPELINE_DEPLOYER_ACCESS")
+			awsSecrect := os.Getenv("PIPELINE_DEPLOYER_SECRET")
+
+			if stack.IsThirdParty {
+				user, err := storage.Store.User.Get(*e.Repo.Owner.Login)
+				if err != nil {
+					log.Println("Cannot build container for", err.Error())
+					return
+				}
+
+				awsAccess = user.ThirdPartyAWS.AccessKey
+				awsSecrect = user.ThirdPartyAWS.SecretKey
+			}
+
 			buildID := generateRandomID()
 			stack.Build = &storage.BuildModel{
 				Latest: buildID,
@@ -87,17 +101,15 @@ func HandleHook(w http.ResponseWriter, req *http.Request) {
 			go updateStacks(*e.Repo.Owner.Login, stack)
 
 			if *e.Action == githubActionReleased {
-				log.Println("shouldnt we do it?")
-
 				Push(ContainerRunParams{
-					AWSAccess: os.Getenv("PIPELINE_DEPLOYER_ACCESS"),
-					AWSSecret: os.Getenv("PIPELINE_DEPLOYER_SECRET"),
+					AWSAccess: awsAccess,
+					AWSSecret: awsSecrect,
 					Branch:    getBranchFromRef(*e.Release.TargetCommitish) + ":tag",
 					Bucket:    stack.BucketID,
 					Repo:      stack.Repo.Name,
 					CDN:       stack.CDN.ID,
 					User:      *e.Repo.Owner.Login,
-					Token:     GetUserToken(*e.Repo.Owner.Login),
+					Token:     GetUserToken(*e.Sender.Login),
 					buildID:   buildID,
 				})
 			}

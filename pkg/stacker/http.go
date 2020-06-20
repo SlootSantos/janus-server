@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/SlootSantos/janus-server/pkg/api/auth"
@@ -240,8 +241,12 @@ func SetupThirdPartyAccount(ctx context.Context, thirdPartyCreds *storage.ThirdP
 				existingFunction, _ := lam.GetFunction(&lambda.GetFunctionInput{
 					FunctionName: aws.String(functionName),
 				})
+				versions, _ := lam.ListVersionsByFunction(&lambda.ListVersionsByFunctionInput{
+					FunctionName: &functionName,
+				})
+				latestVersion := strconv.Itoa(len(versions.Versions) - 1)
 
-				functionARN = *existingFunction.Configuration.FunctionArn + ":1"
+				functionARN = *existingFunction.Configuration.FunctionArn + ":" + latestVersion
 			default:
 				log.Println("Could not handle AWS err", err.Error())
 				return nil, fmt.Errorf("Can not create role for AWS account: %s", err.Error())
@@ -258,7 +263,12 @@ func SetupThirdPartyAccount(ctx context.Context, thirdPartyCreds *storage.ThirdP
 			return nil, err
 		}
 
-		functionARN = *res.FunctionArn + ":1"
+		versions, _ := lam.ListVersionsByFunction(&lambda.ListVersionsByFunctionInput{
+			FunctionName: &functionName,
+		})
+		latestVersion := strconv.Itoa(len(versions.Versions) - 1)
+
+		functionARN = *res.FunctionArn + ":" + latestVersion
 	}
 
 	out := &setupThirdPartyOutput{

@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	aws "github.com/aws/aws-sdk-go/aws"
@@ -153,7 +154,12 @@ func setupLambdaFunc(sess *awsSession.Session) string {
 					FunctionName: aws.String(functionName),
 				})
 
-				functionARN = *existingFunction.Configuration.FunctionArn + ":1"
+				versions, _ := lam.ListVersionsByFunction(&lambda.ListVersionsByFunctionInput{
+					FunctionName: &functionName,
+				})
+				latestVersion := strconv.Itoa(len(versions.Versions) - 1)
+
+				functionARN = *existingFunction.Configuration.FunctionArn + ":" + latestVersion
 			default:
 				panic("Could not handle AWS err" + err.Error())
 			}
@@ -168,7 +174,12 @@ func setupLambdaFunc(sess *awsSession.Session) string {
 			panic("Could not publish function" + err.Error())
 		}
 
-		functionARN = *res.FunctionArn + ":1"
+		versions, _ := lam.ListVersionsByFunction(&lambda.ListVersionsByFunctionInput{
+			FunctionName: &functionName,
+		})
+		latestVersion := strconv.Itoa(len(versions.Versions) - 1)
+
+		functionARN = *res.FunctionArn + ":" + latestVersion
 	}
 
 	return functionARN
