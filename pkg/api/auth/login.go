@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
@@ -111,4 +112,15 @@ func setCookie(w http.ResponseWriter, user *github.User) {
 		HttpOnly: true,
 	}
 	http.SetCookie(w, sessionCookie)
+}
+
+func getSameSiteCookiePolicy() http.SameSite {
+	serverURL, _ := url.Parse(os.Getenv("SERVER_URL"))
+	clientURL, _ := url.Parse(os.Getenv("CLIENT_URL"))
+
+	if serverURL.Host != clientURL.Host {
+		return http.SameSiteNoneMode
+	}
+
+	return http.SameSiteLaxMode
 }
