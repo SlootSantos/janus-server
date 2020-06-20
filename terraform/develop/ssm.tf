@@ -122,7 +122,7 @@ resource "aws_ssm_parameter" "janus_git_hook_url" {
 resource "aws_ssm_parameter" "janus_client_url" {
   name  = "/janus/env/production/CLIENT_URL"
   type  = "String"
-  value = "https://app.stackers.io"
+  value = "https://dev.app.stackers.io"
   overwrite = true
    tags = {
        "env"     = "production"

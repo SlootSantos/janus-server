@@ -104,7 +104,7 @@ func setCookie(w http.ResponseWriter, user *github.User) {
 		Name:     OAuthCookieName,
 		Value:    cookieValue,
 		Path:     "/",
-		// Domain:   "http://localhost",
+		Domain:   os.Getenv("SERVER_URL"),
 		HttpOnly: true,
 	}
 	http.SetCookie(w, sessionCookie)
