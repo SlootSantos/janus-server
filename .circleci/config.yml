@@ -24,6 +24,12 @@ workflows:
   test-and-deploy:
     jobs:
       - test
+        filters:
+          tags:
+            only: /^v.*/
       - upload:
+          filters:
+            tags:
+              only: /^v.*/
           requires:
             - test
