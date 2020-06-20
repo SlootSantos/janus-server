@@ -96,7 +96,6 @@ func TokenToJSON(token *oauth2.Token) (string, error) {
 		return "", err
 	}
 
-	fmt.Println(d)
 	return string(d), nil
 }
 

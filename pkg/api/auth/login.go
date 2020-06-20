@@ -103,7 +103,7 @@ func setCookie(w http.ResponseWriter, user *github.User) {
 	cookieDomain := strings.Split(os.Getenv("SERVER_URL"), "://")[1]
 
 	sessionCookie := &http.Cookie{
-		SameSite: http.SameSiteLaxMode,
+		SameSite: getSameSiteCookiePolicy(),
 		Secure:   os.Getenv("ENV") != "local",
 		Name:     OAuthCookieName,
 		Value:    cookieValue,
@@ -117,6 +117,8 @@ func setCookie(w http.ResponseWriter, user *github.User) {
 func getSameSiteCookiePolicy() http.SameSite {
 	serverURL, _ := url.Parse(os.Getenv("SERVER_URL"))
 	clientURL, _ := url.Parse(os.Getenv("CLIENT_URL"))
+
+	log.Printf("Server %s, Client %s", serverURL.Host, clientURL.Host)
 
 	if serverURL.Host != clientURL.Host {
 		return http.SameSiteNoneMode
