@@ -1,9 +1,13 @@
 package auth
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/SlootSantos/janus-server/pkg/storage"
+	"github.com/golang/mock/gomock"
 )
 
 func TestHandleLogin(t *testing.T) {
@@ -82,10 +86,16 @@ func TestHandleLoginCheck(t *testing.T) {
 				status, http.StatusOK)
 		}
 
-		expected := "{\"LoggedIn\":false}\n"
-		if rr.Body.String() != expected {
+		expectedBody := &loginCheckResponse{}
+		json.Unmarshal(rr.Body.Bytes(), expectedBody)
+		if expectedBody.LoggedIn {
 			t.Errorf("handler returned unexpected body: got %v want %v",
-				rr.Body.String(), expected)
+				expectedBody.LoggedIn, false)
+		}
+
+		if expectedBody.User != nil {
+			t.Errorf("handler returned unexpected body: got %v want %v",
+				expectedBody.User, nil)
 		}
 	})
 
@@ -95,10 +105,20 @@ func TestHandleLoginCheck(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		req.AddCookie(&http.Cookie{Name: OAuthCookieName})
+		cookieValue, _ := CreateJWT(&authUser{
+			Name: "SlootSantos",
+		})
+
+		req.AddCookie(&http.Cookie{Name: OAuthCookieName, Value: cookieValue})
 
 		rr := httptest.NewRecorder()
 		handler := http.HandlerFunc(HandleLoginCheck)
+
+		ctrl := gomock.NewController(t)
+		userMock, _, _ := storage.MockInit(ctrl)
+
+		userGetReturn := &storage.UserModel{}
+		userMock.EXPECT().Get("SlootSantos").Times(1).Return(userGetReturn, nil)
 
 		handler.ServeHTTP(rr, req)
 
@@ -107,10 +127,16 @@ func TestHandleLoginCheck(t *testing.T) {
 				status, http.StatusOK)
 		}
 
-		expected := "{\"LoggedIn\":true}\n"
-		if rr.Body.String() != expected {
+		expectedBody := &loginCheckResponse{}
+		json.Unmarshal(rr.Body.Bytes(), expectedBody)
+		if !expectedBody.LoggedIn {
 			t.Errorf("handler returned unexpected body: got %v want %v",
-				rr.Body.String(), expected)
+				expectedBody.LoggedIn, true)
+		}
+
+		if expectedBody.User == nil {
+			t.Errorf("handler returned unexpected body: got %v want %v",
+				expectedBody.User, "something but nil")
 		}
 	})
 }

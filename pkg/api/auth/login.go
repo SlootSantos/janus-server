@@ -24,20 +24,32 @@ const LoginCheck = "/login/check"
 // Callback is the callback route identifier
 const Callback = "/callback"
 
+type loginCheckResponse struct {
+	LoggedIn bool
+	User     *storage.AllowedUserSettings
+}
+
 func HandleLoginCheck(w http.ResponseWriter, req *http.Request) {
 	origin := req.Header.Get("Origin")
-	cookie, _ := req.Cookie(OAuthCookieName)
-	cookieSet := true
+
 	w.Header().Set("Access-Control-Allow-Origin", origin)
 	w.Header().Set("Access-Control-Allow-Credentials", "true")
 	w.Header().Set("Content-Type", "application/json")
 
-	if cookie == nil {
-		cookieSet = false
+	cookie, _ := req.Cookie(OAuthCookieName)
+	response := loginCheckResponse{}
+
+	if cookie != nil {
+		nameFromeCookie, _ := req.Cookie(OAuthCookieName)
+		authUser, _ := GetUserFromCookie(nameFromeCookie)
+		user, _ := storage.Store.User.Get(authUser.Name)
+
+		sanitizedUser := user.GetAllowedSettings(authUser.Name)
+		response.LoggedIn = true
+		response.User = sanitizedUser
 	}
 
-	data := struct{ LoggedIn bool }{LoggedIn: cookieSet}
-	json.NewEncoder(w).Encode(data)
+	json.NewEncoder(w).Encode(response)
 }
 
 // HandleLogin handles all of the Login logic

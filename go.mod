@@ -18,8 +18,10 @@ require (
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/joho/godotenv v1.3.0
 	github.com/opencontainers/go-digest v1.0.0 // indirect
+	github.com/rjeczalik/interfaces v0.1.0 // indirect
 	github.com/stripe/stripe-go v70.15.0+incompatible // indirect
 	github.com/stripe/stripe-go/v71 v71.17.0
+	github.com/vburenin/ifacemaker v1.1.0 // indirect
 	golang.org/x/net v0.0.0-20200528225125-3c3fba18258b // indirect
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sys v0.0.0-20200523222454-059865788121 // indirect
